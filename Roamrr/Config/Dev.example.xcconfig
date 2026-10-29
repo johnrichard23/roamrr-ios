@@ -1,0 +1,10 @@
+// Copy this file to Roamrr/Roamrr/Dev.xcconfig and fill in the values.
+// The real file is not committed.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.roamrr.dev
+APP_DISPLAY_NAME = Roamrr Dev
+INFOPLIST_KEY_CFBundleDisplayName = $(APP_DISPLAY_NAME)
+SUPABASE_URL = http:/$()/127.0.0.1:54321
+SUPABASE_ANON_KEY = paste-the-local-anon-key
+FACEBOOK_APP_ID =
+FACEBOOK_CLIENT_TOKEN =

@@ -1,0 +1,10 @@
+// Copy this file to Roamrr/Roamrr/UAT.xcconfig and fill in the values.
+// The real file is not committed.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.roamrr.uat
+APP_DISPLAY_NAME = Roamrr UAT
+INFOPLIST_KEY_CFBundleDisplayName = $(APP_DISPLAY_NAME)
+SUPABASE_URL = https:/$()/your-uat-project.supabase.co
+SUPABASE_ANON_KEY = paste-the-uat-anon-key
+FACEBOOK_APP_ID =
+FACEBOOK_CLIENT_TOKEN =

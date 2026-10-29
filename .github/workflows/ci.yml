@@ -1,0 +1,54 @@
+name: iOS tests
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  packages:
+    name: Package tests
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core, Networking and Persistence
+        working-directory: Roamrr/Packages
+        run: |
+          for package in Core Networking Persistence; do
+            (cd "$package" && swift test)
+          done
+
+  app:
+    name: App build and design system tests
+    # The simulator run is the slow part, so it only gates what goes to main.
+    if: github.base_ref == 'main' || github.event_name == 'workflow_dispatch'
+    needs: packages
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create build settings from the examples
+        working-directory: Roamrr
+        run: |
+          for env in Dev UAT Prod; do
+            cp "Config/$env.example.xcconfig" "Roamrr/$env.xcconfig"
+          done
+      - name: Build every scheme
+        working-directory: Roamrr
+        run: |
+          for scheme in Roamrr-Dev Roamrr-UAT Roamrr; do
+            xcodebuild build -project Roamrr.xcodeproj -scheme "$scheme" \
+              -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+          done
+      - name: Design system tests
+        working-directory: Roamrr/Packages/DesignSystem
+        run: |
+          xcodebuild test -scheme DesignSystem \
+            -destination 'platform=iOS Simulator,name=iPhone 16'

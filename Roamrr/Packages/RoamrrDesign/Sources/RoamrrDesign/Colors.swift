@@ -1,30 +1,12 @@
+import DesignSystem
 import SwiftUI
-
-#if canImport(UIKit)
-import UIKit
 
 extension ColorToken {
     /// A color that follows the light or dark appearance.
     public var color: Color {
-        let light = self.light
-        let dark = self.dark
-        return Color(uiColor: UIColor { traits in
-            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
-        })
+        DesignSystem.color(light: light, dark: dark)
     }
 }
-
-extension UIColor {
-    convenience init(hex: UInt32) {
-        self.init(
-            red: CGFloat((hex >> 16) & 0xFF) / 255,
-            green: CGFloat((hex >> 8) & 0xFF) / 255,
-            blue: CGFloat(hex & 0xFF) / 255,
-            alpha: 1
-        )
-    }
-}
-#endif
 
 extension Color {
     /// The app's colors, for example `Color.Roamrr.canvas`.

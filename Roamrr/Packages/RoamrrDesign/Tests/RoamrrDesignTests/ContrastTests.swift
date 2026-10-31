@@ -1,5 +1,5 @@
 import XCTest
-@testable import DesignSystem
+@testable import RoamrrDesign
 
 final class ContrastTests: XCTestCase {
     func testBlackOnWhiteIs21() {

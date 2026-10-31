@@ -53,7 +53,7 @@ jobs:
               -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
           done
       - name: Design system tests
-        working-directory: Roamrr/Packages/DesignSystem
+        working-directory: Roamrr/Packages/RoamrrDesign
         run: |
-          xcodebuild test -scheme DesignSystem \
+          xcodebuild test -scheme RoamrrDesign \
             -destination 'platform=iOS Simulator,name=iPhone 16'

@@ -1,27 +1,27 @@
 import Core
-import DesignSystem
+import RoamrrDesign
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.theme) private var theme
     private let environment = AppEnvironment(bundleIdentifier: Bundle.main.bundleIdentifier ?? "")
 
     var body: some View {
-        VStack(spacing: Spacing.sm) {
-            Wordmark()
-            if environment != .prod {
-                Text("\(environment.rawValue.capitalized) build")
-                    .font(Typography.caption)
-                    .foregroundStyle(Color.Roamrr.inkSecondary)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xxs)
-                    .background(Color.Roamrr.pill, in: Capsule())
+        WelcomeView()
+            .overlay(alignment: .top) {
+                if environment != .prod {
+                    Text("\(environment.rawValue.capitalized) build")
+                        .textRole(.caption1)
+                        .foregroundStyle(theme.labelSecondary)
+                        .padding(.horizontal, theme.spacing.sm)
+                        .padding(.vertical, theme.spacing.xxs)
+                        .background(theme.surface, in: Capsule())
+                }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.Roamrr.canvas)
     }
 }
 
 #Preview {
     ContentView()
+        .theme(.roamrr)
 }

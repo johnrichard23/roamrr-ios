@@ -1,5 +1,5 @@
 import XCTest
-@testable import DesignSystem
+@testable import RoamrrDesign
 
 /// Guards the contrast figures written in the design system. Each row is
 /// (name, foreground, background, minimum ratio). Text needs 4.5, large text and

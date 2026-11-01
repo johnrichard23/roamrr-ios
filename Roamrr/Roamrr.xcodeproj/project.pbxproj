@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000000000061 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000051 /* Core */; };
-		000000000000000000000062 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000052 /* DesignSystem */; };
+		000000000000000000000062 /* RoamrrDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000052 /* RoamrrDesign */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,7 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				000000000000000000000061 /* Core in Frameworks */,
-				000000000000000000000062 /* DesignSystem in Frameworks */,
+				000000000000000000000062 /* RoamrrDesign in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -85,7 +85,7 @@
 			name = Roamrr;
 			packageProductDependencies = (
 				000000000000000000000051 /* Core */,
-				000000000000000000000052 /* DesignSystem */,
+				000000000000000000000052 /* RoamrrDesign */,
 			);
 			productName = MyApp;
 			productReference = 000000000000000000000120 /* Roamrr.app */;
@@ -117,7 +117,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				000000000000000000000041 /* XCLocalSwiftPackageReference "Packages/Core" */,
-				000000000000000000000042 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */,
+				000000000000000000000042 /* XCLocalSwiftPackageReference "Packages/RoamrrDesign" */,
 				000000000000000000000043 /* XCLocalSwiftPackageReference "Packages/Persistence" */,
 				000000000000000000000044 /* XCLocalSwiftPackageReference "Packages/Networking" */,
 			);
@@ -824,9 +824,9 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Core;
 		};
-		000000000000000000000042 /* XCLocalSwiftPackageReference "Packages/DesignSystem" */ = {
+		000000000000000000000042 /* XCLocalSwiftPackageReference "Packages/RoamrrDesign" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/DesignSystem;
+			relativePath = Packages/RoamrrDesign;
 		};
 		000000000000000000000043 /* XCLocalSwiftPackageReference "Packages/Persistence" */ = {
 			isa = XCLocalSwiftPackageReference;
@@ -843,9 +843,9 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = Core;
 		};
-		000000000000000000000052 /* DesignSystem */ = {
+		000000000000000000000052 /* RoamrrDesign */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = DesignSystem;
+			productName = RoamrrDesign;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

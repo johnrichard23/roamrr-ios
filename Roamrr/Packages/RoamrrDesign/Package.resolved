@@ -1,0 +1,15 @@
+{
+  "originHash" : "84a6d5ab91db28e3204bf057f8c18fd4fa3dba537f99218b279358212e25e549",
+  "pins" : [
+    {
+      "identity" : "mobile-design-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnrichard23/mobile-design-system.git",
+      "state" : {
+        "revision" : "deb231cea8302fc09be8ef3663e10ebacd8abd55",
+        "version" : "0.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}

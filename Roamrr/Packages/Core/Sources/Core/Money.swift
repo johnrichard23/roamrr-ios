@@ -11,6 +11,11 @@ public enum Money {
         "GBP": 2, "CAD": 2, "AED": 2, "SAR": 2, "CHF": 2, "KWD": 3,
     ]
 
+    /// Decimal places `convertMinor` uses for a currency, or `nil` if it can't convert it.
+    public static func exponent(for code: String) -> Int? {
+        exponents[code.uppercased()]
+    }
+
     /// Rounds to the nearest integer; an exact half goes to the even neighbour.
     public static func roundHalfEven(_ value: Decimal) -> Decimal {
         var input = value

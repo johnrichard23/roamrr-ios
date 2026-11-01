@@ -1,0 +1,24 @@
+{
+  "originHash" : "b05bd41436f5ff869516b9385af28196c1908d06371db441cc91f9b7fd51e802",
+  "pins" : [
+    {
+      "identity" : "mobile-data-layer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnrichard23/mobile-data-layer.git",
+      "state" : {
+        "revision" : "071354fc4c7f8e8ce7e8eefc982a81ee9421307a",
+        "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "mobile-design-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnrichard23/mobile-design-system.git",
+      "state" : {
+        "revision" : "deb231cea8302fc09be8ef3663e10ebacd8abd55",
+        "version" : "0.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}

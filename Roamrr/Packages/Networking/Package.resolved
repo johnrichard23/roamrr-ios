@@ -1,0 +1,15 @@
+{
+  "originHash" : "3137eba129cdf756038556ae203ef02b18cbae382623ca55253d8e6b95cd51dd",
+  "pins" : [
+    {
+      "identity" : "mobile-data-layer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnrichard23/mobile-data-layer.git",
+      "state" : {
+        "revision" : "071354fc4c7f8e8ce7e8eefc982a81ee9421307a",
+        "version" : "0.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}

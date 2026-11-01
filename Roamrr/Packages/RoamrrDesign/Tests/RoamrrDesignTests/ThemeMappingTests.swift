@@ -18,6 +18,13 @@ final class ThemeMappingTests: XCTestCase {
         return byte(red) << 16 | byte(green) << 8 | byte(blue)
     }
 
+    private func alpha(_ color: Color, dark: Bool) -> CGFloat {
+        let traits = UITraitCollection(userInterfaceStyle: dark ? .dark : .light)
+        var (red, green, blue, alpha) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+        UIColor(color).resolvedColor(with: traits).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        return alpha
+    }
+
     private func assertMatches(_ color: Color, _ token: ColorToken, _ name: String) {
         XCTAssertEqual(hex(color, dark: false), token.light, "\(name) light")
         XCTAssertEqual(hex(color, dark: true), token.dark, "\(name) dark")
@@ -55,12 +62,22 @@ final class ThemeMappingTests: XCTestCase {
             let colors = kind.colors(theme)
             for dark in [false, true] {
                 // A text-only kind has a clear fill, so the label sits on the canvas.
-                let isTextOnly = hex(colors.fill, dark: dark) == hex(.clear, dark: dark)
+                // Judged by alpha: an opaque black fill has the same hex value as clear.
+                let isTextOnly = alpha(colors.fill, dark: dark) == 0
                 let background = isTextOnly ? theme.background : colors.fill
                 let ratio = Contrast.ratio(hex(colors.foreground, dark: dark), hex(background, dark: dark))
                 XCTAssertGreaterThanOrEqual(ratio, 4.5, "\(name) \(dark ? "dark" : "light")")
             }
         }
+    }
+
+    func testAnOpaqueBlackFillIsNotMistakenForAClearOne() {
+        // Black and clear have the same hex value; only alpha tells them apart.
+        XCTAssertEqual(hex(.black, dark: false), hex(.clear, dark: false))
+        XCTAssertEqual(alpha(.black, dark: false), 1)
+        XCTAssertEqual(alpha(.black, dark: true), 1)
+        XCTAssertEqual(alpha(.clear, dark: false), 0)
+        XCTAssertEqual(alpha(.clear, dark: true), 0)
     }
 
     func testInkIsThePrimaryLookAndSoftUsesTheSoftAccent() {

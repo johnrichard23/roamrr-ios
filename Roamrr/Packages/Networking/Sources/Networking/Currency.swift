@@ -1,7 +1,21 @@
+import Core
 import DataLayer
 import Foundation
 
+/// Why a currency was refused.
+public enum CurrencyError: Error, Equatable {
+    /// The code isn't three capital letters.
+    case invalidCode(String)
+    /// The minor unit isn't between 0 and 4.
+    case invalidMinorUnit(Int)
+    /// `Money` converts this currency with a different number of decimal places.
+    case minorUnitDisagrees(code: String, minorUnit: Int, expected: Int)
+}
+
 /// A currency Roamrr can record money in. Reference data from the `currencies` table.
+///
+/// The rules are checked in one place, `init`, which decoding also goes through, so a
+/// `Currency` that exists is a valid one.
 public struct Currency: Identifiable, Sendable, Codable, Equatable {
     /// The ISO 4217 code, for example `USD`.
     public let code: String
@@ -11,10 +25,30 @@ public struct Currency: Identifiable, Sendable, Codable, Equatable {
 
     public var id: String { code }
 
-    public init(code: String, name: String, minorUnit: Int) {
+    /// - Throws: `CurrencyError` if the code isn't three capital letters, the minor unit
+    ///   isn't 0 to 4, or it differs from the places `Money` uses for that code. A code
+    ///   `Money` doesn't know is accepted; converting it later fails with
+    ///   `MoneyError.unsupportedCurrency` instead of rejecting the whole list.
+    public init(code: String, name: String, minorUnit: Int) throws {
+        guard code.count == 3, code.allSatisfy({ $0.isASCII && $0.isUppercase }) else {
+            throw CurrencyError.invalidCode(code)
+        }
+        guard (0...4).contains(minorUnit) else { throw CurrencyError.invalidMinorUnit(minorUnit) }
+        if let expected = Money.exponent(for: code), expected != minorUnit {
+            throw CurrencyError.minorUnitDisagrees(code: code, minorUnit: minorUnit, expected: expected)
+        }
         self.code = code
         self.name = name
         self.minorUnit = minorUnit
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(
+            code: container.decode(String.self, forKey: .code),
+            name: container.decode(String.self, forKey: .name),
+            minorUnit: container.decode(Int.self, forKey: .minorUnit)
+        )
     }
 }
 
@@ -31,11 +65,9 @@ public struct CurrencyMapper: Mapper {
     public init() {}
 
     public func model(from dto: CurrencyDTO) throws -> Currency {
-        guard let code = dto.code, !code.isEmpty else { throw MappingError.missingField("code") }
-        guard let minorUnit = dto.minorUnit, (0...4).contains(minorUnit) else {
-            throw MappingError.missingField("minor_unit")
-        }
-        return Currency(code: code, name: dto.name ?? code, minorUnit: minorUnit)
+        guard let code = dto.code else { throw MappingError.missingField("code") }
+        guard let minorUnit = dto.minorUnit else { throw MappingError.missingField("minor_unit") }
+        return try Currency(code: code, name: dto.name ?? code, minorUnit: minorUnit)
     }
 
     public func dto(from model: Currency) throws -> CurrencyDTO {

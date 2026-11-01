@@ -7,7 +7,7 @@ let package = Package(
     products: [.library(name: "Networking", targets: ["Networking"])],
     dependencies: [
         .package(path: "../Core"),
-        .package(name: "mobile-data-layer", path: "../../../../../Work/mobile-data-layer"),
+        .package(url: "https://github.com/johnrichard23/mobile-data-layer.git", from: "0.2.0"),
     ],
     targets: [
         .target(

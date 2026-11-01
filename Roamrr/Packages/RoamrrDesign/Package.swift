@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.iOS(.v17)],
     products: [.library(name: "RoamrrDesign", targets: ["RoamrrDesign"])],
     dependencies: [
-        .package(name: "mobile-design-system", path: "../../../../../Work/mobile-design-system"),
+        .package(url: "https://github.com/johnrichard23/mobile-design-system.git", from: "0.2.0"),
     ],
     targets: [
         .target(

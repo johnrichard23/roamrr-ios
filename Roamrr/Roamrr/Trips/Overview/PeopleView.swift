@@ -6,6 +6,7 @@ struct PeopleView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var copied = false
 
@@ -25,6 +26,8 @@ struct PeopleView: View {
                     PersonRow(person: person)
                 }
                 codePill(trip)
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, !trip.isPast(on: store.today) { inviteButton(trip) }
             }
             .padding(.horizontal, theme.spacing.lg)
             .padding(.bottom, theme.spacing.lg)
@@ -35,15 +38,21 @@ struct PeopleView: View {
         .navigationBarTitleDisplayMode(.inline)
         .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) {
-                ShareLink(item: shareText(trip)) {
-                    Label("Invite friends", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.ds(.ink))
-                .padding(.horizontal, theme.spacing.lg)
-                .padding(.vertical, theme.spacing.xs)
+            if !isLandscape, !trip.isPast(on: store.today) {
+                inviteButton(trip)
+                    .padding(.horizontal, theme.spacing.lg)
+                    .padding(.vertical, theme.spacing.xs)
             }
         }
+    }
+
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private func inviteButton(_ trip: Trip) -> some View {
+        ShareLink(item: shareText(trip)) {
+            Label("Invite friends", systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.ds(.ink))
     }
 
     // MARK: Pieces

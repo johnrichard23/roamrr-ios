@@ -11,7 +11,7 @@ struct GroupedRows<Data: RandomAccessCollection, Row: View>: View where Data.Ele
     @Environment(\.theme) private var theme
 
     var body: some View {
-        VStack(spacing: 0) {
+        LazyVStack(spacing: 0) {
             ForEach(data) { item in
                 row(item)
                 if item.id != data.last?.id {

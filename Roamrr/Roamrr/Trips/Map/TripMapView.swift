@@ -470,6 +470,7 @@ private struct Pin: View {
         .animation(DesignSystem.Motion.enter, value: isSelected)
         .animation(DesignSystem.Motion.enter, value: isDimmed)
         .onAppear { pulse = !reduceMotion }
+        .onChange(of: reduceMotion) { _, reduce in pulse = !reduce }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(member.name), \(isLive ? "live" : "last seen")")
     }

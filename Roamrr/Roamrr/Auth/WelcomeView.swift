@@ -20,7 +20,7 @@ struct WelcomeView: View {
                     header.frame(maxWidth: .infinity)
                     signInButtons.frame(maxWidth: 420)
                 }
-                .containerRelativeFrame(.vertical)
+                .padding(.vertical, theme.spacing.lg)
                 .screenMargins()
             } else {
                 VStack(spacing: theme.spacing.lg * 2) {
@@ -35,6 +35,8 @@ struct WelcomeView: View {
             }
         }
         .scrollBounceBehavior(.basedOnSize)
+        // Centres the landscape layout when it is shorter than the screen, and lets it grow and scroll when it is not.
+        .defaultScrollAnchor(isLandscape ? .center : .top)
         .safeAreaInset(edge: .bottom) {
             if !typeSize.isAccessibilitySize, !isLandscape {
                 signInButtons

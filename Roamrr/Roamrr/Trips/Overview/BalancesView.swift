@@ -6,6 +6,7 @@ struct BalancesView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var paymentSeed: PaymentSeed?
 
@@ -23,6 +24,8 @@ struct BalancesView: View {
                 hero(trip)
                 if !trip.settlements.isEmpty { suggested(trip) }
                 if !trip.standings.isEmpty { everyone(trip) }
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, !trip.isPast(on: store.today) { recordPaymentButton }
             }
             .padding(.horizontal, theme.spacing.lg)
             .padding(.bottom, theme.spacing.lg)
@@ -33,9 +36,8 @@ struct BalancesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) {
-                Button("Record payment", systemImage: "wallet.pass") { paymentSeed = PaymentSeed(settlement: nil) }
-                    .buttonStyle(.ds(.ink))
+            if !isLandscape, !trip.isPast(on: store.today) {
+                recordPaymentButton
                     .padding(.horizontal, theme.spacing.lg)
                     .padding(.vertical, theme.spacing.xs)
             }
@@ -43,6 +45,13 @@ struct BalancesView: View {
         .sheet(item: $paymentSeed) { seed in
             RecordPaymentSheet(trip: trip, me: store.me, today: store.today, seed: seed.settlement)
         }
+    }
+
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private var recordPaymentButton: some View {
+        Button("Record payment", systemImage: "wallet.pass") { paymentSeed = PaymentSeed(settlement: nil) }
+            .buttonStyle(.ds(.ink))
     }
 
     // MARK: Pieces

@@ -67,8 +67,11 @@ struct TripHomeView: View {
             case .itinerary: PlanView(tripID: tripID, startOnDays: true)
             case .people: PeopleView(tripID: tripID)
             case .map: TripMapView(tripID: tripID)
+            case .documents: DocumentsView(tripID: tripID)
+            case .myDocuments: MyDocumentsView()
             }
         }
+        .navigationDestination(for: DocumentRoute.self) { DocumentDetailView(tripID: $0.tripID, documentID: $0.documentID) }
         .navigationDestination(for: PlanRoute.self) { IdeaDetailView(tripID: $0.tripID, itemID: $0.itemID) }
     }
 }

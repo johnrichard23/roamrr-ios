@@ -62,6 +62,37 @@ enum MockData {
         return [sunrise, lunch, lagoon, rocks]
     }
 
+    private static func documents() -> [TripDocument] {
+        [
+            TripDocument(
+                id: UUID(), kind: .flight, title: "Manila to Siargao", fileName: "Boarding-pass.jpg", addedBy: you,
+                visibility: .onlyMe, place: "Siargao airport", start: date(2026, 11, 3), minutes: 6 * 60 + 40, confirmation: "6X4LQP"
+            ),
+            TripDocument(
+                id: UUID(), kind: .flight, title: "Siargao to Manila", fileName: "Return-flight.pdf", addedBy: you,
+                visibility: .onlyMe, place: "Siargao airport", start: date(2026, 11, 10), minutes: 16 * 60 + 15, confirmation: "6X4LQP"
+            ),
+            TripDocument(
+                id: UUID(), kind: .flight, title: "Cebu to Siargao", fileName: "Bea-flight.pdf", addedBy: bea,
+                visibility: .onlyMe, start: date(2026, 11, 3), minutes: 9 * 60
+            ),
+            TripDocument(
+                id: UUID(), kind: .stay, title: "Siargao Surf Camp", fileName: "SurfCamp-confirmation.pdf", addedBy: bea,
+                visibility: .trip, place: "General Luna, Siargao", start: date(2026, 11, 3), minutes: 14 * 60,
+                end: date(2026, 11, 10), confirmation: "SSC-48213"
+            ),
+            TripDocument(
+                id: UUID(), kind: .activity, title: "Sugba Lagoon tour", fileName: "Lagoon-voucher.pdf", addedBy: migs,
+                visibility: .trip, place: "Del Carmen", start: date(2026, 11, 5), minutes: 8 * 60, confirmation: "SL-9921"
+            ),
+        ]
+    }
+
+    static let myDocuments: [PersonalDocument] = [
+        PersonalDocument(id: UUID(), title: "Passport", detail: "Expires Mar 2031", symbol: "person.text.rectangle"),
+        PersonalDocument(id: UUID(), title: "Travel insurance", detail: "Valid to 31 Dec", symbol: "cross.case"),
+    ]
+
     private static func sagada() -> Trip {
         var trip = Trip(
             id: UUID(), title: "Sagada weekend", destination: "Sagada",
@@ -119,7 +150,8 @@ enum MockData {
             ],
             owner: bea,
             joined: [you.id: date(2026, 11, 2), ana.id: date(2026, 11, 1), jo.id: date(2026, 11, 1), migs.id: date(2026, 11, 2)],
-            plan: plan()
+            plan: plan(),
+            documents: documents()
         ),
         Trip(
             id: UUID(), title: "Baguio weekend", destination: "Baguio",

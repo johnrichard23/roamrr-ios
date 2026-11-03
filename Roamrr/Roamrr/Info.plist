@@ -6,5 +6,9 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>SupabaseAnonKey</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Roamrr uses the camera to scan booking confirmations. The scan is read on your phone and is not sent anywhere to be read.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Roamrr uses Face ID to keep your passport and insurance documents private on this phone.</string>
 </dict>
 </plist>

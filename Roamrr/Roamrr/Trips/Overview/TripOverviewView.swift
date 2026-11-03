@@ -5,7 +5,7 @@ import SwiftUI
 
 /// The pages a trip home can open.
 enum TripSection: Hashable {
-    case balances, expenses, plan, itinerary, map, people
+    case balances, expenses, plan, itinerary, map, people, documents, myDocuments
 
     var title: String {
         switch self {
@@ -15,6 +15,8 @@ enum TripSection: Hashable {
         case .itinerary: "Itinerary"
         case .map: "Map"
         case .people: "People"
+        case .documents: "Documents"
+        case .myDocuments: "My documents"
         }
     }
 }
@@ -286,12 +288,15 @@ struct TripOverviewView: View {
     // MARK: Chips
 
     private func chips(_ trip: Trip) -> some View {
-        HStack(spacing: theme.spacing.xs) {
+        FlowLayout(spacing: theme.spacing.xs) {
             NavigationLink(value: TripSection.itinerary) {
                 chip("calendar", "Itinerary", itineraryDetail(trip))
             }
             NavigationLink(value: TripSection.people) {
-                chip("person.2", "People", "\(trip.peopleCount)")
+                compactChip("person.2", "People", "\(trip.peopleCount)")
+            }
+            NavigationLink(value: TripSection.documents) {
+                compactChip("doc.text", "Documents", "\(trip.documents(for: store.me).count)")
             }
         }
         .buttonStyle(.plain)
@@ -315,6 +320,19 @@ struct TripOverviewView: View {
         .lineLimit(1)
         .padding(.horizontal, theme.spacing.sm).frame(minHeight: 44)
         .background(Color.Roamrr.pill, in: Capsule())
+    }
+
+    /// A chip that shows only its icon and a count, so three of them fit on one row. VoiceOver still hears the name.
+    private func compactChip(_ symbol: String, _ title: String, _ value: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol).foregroundStyle(theme.accent)
+            Text(value).textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
+        }
+        .lineLimit(1)
+        .padding(.horizontal, theme.spacing.sm).frame(minHeight: 44)
+        .background(Color.Roamrr.pill, in: Capsule())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title), \(value)")
     }
 }
 

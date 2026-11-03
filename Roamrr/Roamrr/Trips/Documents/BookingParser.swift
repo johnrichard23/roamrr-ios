@@ -73,8 +73,11 @@ enum BookingParser {
 
     private static func classify(_ lowered: String) -> DocumentKind {
         let scores = keywords.mapValues { words in words.filter { lowered.contains($0) }.count }
-        guard let best = scores.max(by: { $0.value < $1.value }), best.value > 0 else { return .other }
-        return best.key
+        // On a tie the order of `priority` decides, so the same text always gets the same kind.
+        let priority: [DocumentKind] = [.flight, .stay, .activity, .insurance]
+        guard let best = priority.max(by: { (scores[$0] ?? 0, -(priority.firstIndex(of: $0) ?? 0)) < (scores[$1] ?? 0, -(priority.firstIndex(of: $1) ?? 0)) }),
+              (scores[best] ?? 0) > 0 else { return .other }
+        return best
     }
 
     // MARK: Confirmation number
@@ -82,13 +85,18 @@ enum BookingParser {
     /// The code after "confirmation", "booking reference", "PNR" and similar. It must look like a code: capitals and
     /// digits, with at least one digit or six letters, so an ordinary word is never taken for one.
     private static func confirmationNumber(in text: String) -> String {
-        let pattern = #"(?i)(?:confirmation|booking|reservation|reference|ref|pnr|record locator|voucher)(?:[ \t]*(?:no\.?|number|code|id|#|reference|ref))?[ \t]*[:#\-]?[ \t]*([A-Z0-9][A-Z0-9\-]{4,14})"#
+        // A label, any words that finish it ("Booking confirmation no."), an optional separator, then the code.
+        let pattern = #"(?i)(?:confirmation|booking|reservation|reference|ref|pnr|record locator|voucher)(?:[ \t]*(?:confirmation|reference|number|no\.?|code|id|ref|#))*[ \t]*([:#\-])?[ \t]*([A-Z0-9][A-Z0-9\-]{4,14})"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return "" }
         let range = NSRange(text.startIndex..., in: text)
         for match in regex.matches(in: text, range: range) {
-            guard let codeRange = Range(match.range(at: 1), in: text) else { continue }
+            guard let codeRange = Range(match.range(at: 2), in: text) else { continue }
             let code = String(text[codeRange])
-            let looksLikeCode = code == code.uppercased() && (code.contains { $0.isNumber } || code.count >= 6)
+            let hasSeparator = match.range(at: 1).location != NSNotFound
+            // A code has a digit. A code of letters only ("ABCDEF") counts just after a ":" or "#", so a name in
+            // capitals that follows a heading is not taken for one.
+            let looksLikeCode = code == code.uppercased()
+                && (code.contains { $0.isNumber } || (hasSeparator && code.count <= 8 && code.allSatisfy(\.isLetter)))
             if looksLikeCode { return code }
         }
         return ""
@@ -101,7 +109,7 @@ enum BookingParser {
         let minutes: Int?
     }
 
-    private static let timePattern = try? NSRegularExpression(pattern: #"\d{1,2}[:.]\d{2}(?:\s?(?:am|pm)\b)?|\b\d{1,2}\s?(?:am|pm)\b"#, options: .caseInsensitive)
+    private static let timePattern = try? NSRegularExpression(pattern: #"\d{1,2}:\d{2}(?:\s?(?:am|pm)\b)?|\b\d{1,2}\.\d{2}\s?(?:am|pm)\b|\b\d{1,2}\s?(?:am|pm)\b"#, options: .caseInsensitive)
 
     /// The first date in a piece of text, with its time only when the text states one.
     private static func date(in text: String, calendar: Calendar) -> Found? {

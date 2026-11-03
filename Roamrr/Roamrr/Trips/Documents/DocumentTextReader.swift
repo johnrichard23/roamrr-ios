@@ -26,8 +26,8 @@ nonisolated enum DocumentTextReader {
         return await text(from: images)
     }
 
-    static func text(fromPhoto data: Data) async -> String {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return "" }
+    static func text(fromPhoto url: URL) async -> String {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return "" }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,

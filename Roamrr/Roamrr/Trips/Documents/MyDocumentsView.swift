@@ -26,8 +26,17 @@ struct MyDocumentsView: View {
         .solidNavigationBar()
         .task { await lock.unlock() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { lock.lock() }
+            switch phase {
+            // Inactive comes first when the app switcher opens, and iOS photographs the screen then. The Face ID and
+            // passcode prompts also make the app inactive, so a sign-in in progress is left alone.
+            case .inactive where lock.state != .unlocking: lock.lock()
+            case .background: lock.lock()
+            // Coming back, for example from Settings after turning on a passcode, asks again.
+            case .active: Task { await lock.unlock() }
+            @unknown default: break
+            }
         }
+        .onDisappear { lock.lock() }
     }
 
     // MARK: Locked

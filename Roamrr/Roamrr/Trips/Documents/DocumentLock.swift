@@ -14,6 +14,8 @@ final class DocumentLock {
     }
 
     private(set) var state = State.locked
+    /// Bumped every time the lock closes, so an authentication that was already under way cannot open it afterwards.
+    private var generation = 0
 
     var isUnlocked: Bool { state == .unlocked }
 
@@ -26,17 +28,24 @@ final class DocumentLock {
             return
         }
         state = .unlocking
+        let attempt = generation
         do {
             let success = try await context.evaluatePolicy(
                 .deviceOwnerAuthentication, localizedReason: "Open your passport and insurance documents"
             )
+            // The app was backgrounded or the view left while the person was authenticating: stay locked.
+            guard attempt == generation else {
+                if state == .unlocking { state = .locked }
+                return
+            }
             state = success ? .unlocked : .locked
         } catch {
-            state = .locked
+            if attempt == generation || state == .unlocking { state = .locked }
         }
     }
 
     func lock() {
-        if state == .unlocked { state = .locked }
+        generation += 1
+        if state == .unlocked || state == .unlocking { state = .locked }
     }
 }

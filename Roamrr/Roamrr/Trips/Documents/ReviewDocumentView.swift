@@ -22,6 +22,9 @@ struct ReviewDocumentView: View {
     @State private var hasEnd: Bool
     @State private var endDate: Date
     @State private var visibility: DocumentVisibility
+    /// Set once the person picks who sees it, so changing the type afterwards never overrides their choice.
+    @State private var visibilityChosen = false
+    @State private var saved = false
     @State private var placeOnPlan = true
     @State private var planDay: Date?
     @FocusState private var focused: Bool
@@ -57,7 +60,7 @@ struct ReviewDocumentView: View {
 
     /// The day it goes on, when the person wants it on the plan and it has a place there.
     private var targetDay: Date? {
-        guard placeOnPlan, kind.planCategory != nil else { return nil }
+        guard hasDate, placeOnPlan, kind.planCategory != nil else { return nil }
         return planDay
     }
 
@@ -105,7 +108,7 @@ struct ReviewDocumentView: View {
     private var saveButton: some View {
         Button(targetDay.map { "Add to Day \(dayNumber($0))" } ?? "Save document") { save() }
             .buttonStyle(.ds(.ink))
-            .disabled(!canSave)
+            .disabled(!canSave || saved)
     }
 
     // MARK: Pieces
@@ -139,7 +142,9 @@ struct ReviewDocumentView: View {
             .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
             .padding(.horizontal, theme.spacing.xs)
             .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: theme.radius.field, style: .continuous))
-            .onChange(of: kind) { _, new in visibility = new.defaultVisibility }
+            .onChange(of: kind) { _, new in
+                if !visibilityChosen { visibility = new.defaultVisibility }
+            }
         }
     }
 
@@ -176,7 +181,7 @@ struct ReviewDocumentView: View {
     private var visibilityField: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Who can see it").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
-            Picker("Who can see it", selection: $visibility) {
+            Picker("Who can see it", selection: Binding(get: { visibility }, set: { visibility = $0; visibilityChosen = true })) {
                 Text("Shared with the trip").tag(DocumentVisibility.trip)
                 Text("Only me").tag(DocumentVisibility.onlyMe)
             }
@@ -187,7 +192,7 @@ struct ReviewDocumentView: View {
     @ViewBuilder
     private var planRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if planDay != nil {
+            if hasDate, planDay != nil {
                 Toggle(isOn: $placeOnPlan) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(planDay.map { "Add to \($0.weekdayDayMonth)" } ?? "").textRole(.body, emphasized: true)
@@ -212,10 +217,13 @@ struct ReviewDocumentView: View {
     // MARK: Save
 
     private func save() {
+        // A second tap before the sheet has gone must not add the booking twice.
+        guard !saved else { return }
+        saved = true
         let document = TripDocument(
             id: UUID(), kind: kind, title: title.trimmingCharacters(in: .whitespaces), fileName: fileName,
             addedBy: store.me, visibility: visibility, place: place.trimmingCharacters(in: .whitespaces),
-            start: hasDate ? date : nil, minutes: hasDate ? minutes : nil, end: kind == .stay && hasEnd ? endDate : nil,
+            start: hasDate ? date : nil, minutes: hasDate ? minutes : nil, end: kind == .stay && hasDate && hasEnd ? endDate : nil,
             confirmation: confirmation.trimmingCharacters(in: .whitespaces)
         )
         store.addDocument(document, onDay: targetDay, in: trip.id)

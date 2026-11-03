@@ -63,7 +63,7 @@ struct AddDocumentSheet: View {
                 guard let item else { return }
                 photoItem = nil
                 Task {
-                    if let data = try? await item.loadTransferable(type: Data.self) { read(.photo(data), named: "Photo") }
+                    if let photo = try? await item.loadTransferable(type: PickedPhoto.self) { read(.photo(photo.url), named: "Photo") }
                 }
             }
             .alert("Can't scan here", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {

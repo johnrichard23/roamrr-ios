@@ -6,6 +6,7 @@ struct TripCoverBand: View {
     let trip: Trip
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
         Group {
@@ -16,7 +17,8 @@ struct TripCoverBand: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 190)
+        // In landscape the screen is short, so the cover takes less of it.
+        .frame(height: verticalSizeClass == .compact ? 110 : 190)
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 36, bottomTrailingRadius: 36, style: .continuous))
         .accessibilityHidden(true)
     }
@@ -31,7 +33,7 @@ struct StageChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle().fill(theme.accent).frame(width: 6, height: 6)
-            Text(title).textRole(.footnote, emphasized: true)
+            Text(title).textRole(.footnote, emphasized: true).fixedSize()
         }
         .foregroundStyle(Palette.accent.color)
         .padding(.horizontal, 12).frame(minHeight: 28)

@@ -57,7 +57,7 @@ struct MeetingPointSheet: View {
                         .font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
                         .frame(width: 38, height: 38).background(theme.accent, in: Circle())
                         .overlay(Circle().stroke(.white, lineWidth: 3))
-                        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
+                        .markerShadow()
                         .offset(y: -19)
                         .allowsHitTesting(false)
                 }
@@ -115,7 +115,7 @@ struct MeetingPointSheet: View {
     }
 
     private func move(to spot: CLLocationCoordinate2D) {
-        withAnimation { camera = .region(MKCoordinateRegion(center: spot, span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008))) }
+        withAnimation(DesignSystem.Motion.camera) { camera = .region(MKCoordinateRegion(center: spot, span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008))) }
     }
 
     private func propose() {

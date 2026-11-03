@@ -6,6 +6,7 @@ struct ExpensesView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var filter: ExpenseCategory?
     @State private var showAddExpense = false
@@ -20,7 +21,7 @@ struct ExpensesView: View {
 
     private func content(_ trip: Trip) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: theme.spacing.lg) {
+            LazyVStack(alignment: .leading, spacing: theme.spacing.lg) {
                 if trip.expenses.isEmpty {
                     ContentUnavailableView(
                         "No expenses yet", systemImage: "list.bullet.rectangle",
@@ -41,6 +42,8 @@ struct ExpensesView: View {
                         }
                     }
                 }
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, !trip.isPast(on: store.today) { addExpenseBar }
             }
             .padding(.horizontal, theme.spacing.lg)
             .padding(.bottom, theme.spacing.lg)
@@ -50,10 +53,10 @@ struct ExpensesView: View {
         .navigationDestination(for: ExpenseRoute.self) { ExpenseDetailView(tripID: $0.tripID, expenseID: $0.expenseID) }
         .navigationTitle("Expenses")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) {
-                Button("Add expense", systemImage: "plus") { showAddExpense = true }
-                    .buttonStyle(.ds(.ink))
+            if !isLandscape, !trip.isPast(on: store.today) {
+                addExpenseBar
                     .padding(.horizontal, theme.spacing.lg)
                     .padding(.vertical, theme.spacing.xs)
             }
@@ -61,6 +64,13 @@ struct ExpensesView: View {
         .sheet(isPresented: $showAddExpense) {
             AddExpenseSheet(trip: trip, me: store.me, today: store.today)
         }
+    }
+
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private var addExpenseBar: some View {
+        Button("Add expense", systemImage: "plus") { showAddExpense = true }
+            .buttonStyle(.ds(.ink))
     }
 
     // MARK: Pieces

@@ -46,7 +46,10 @@ struct TripMapView: View {
                             isSelected: selectedID == location.id, isDimmed: selectedID != nil && selectedID != location.id,
                             isYou: false
                         )
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                         .onTapGesture { select(location.id, trip) }
+                        .accessibilityAddTraits(.isButton)
                     }
                     .annotationTitles(.hidden)
                 }
@@ -171,7 +174,7 @@ struct TripMapView: View {
             .textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
             .padding(.horizontal, theme.spacing.sm).frame(minHeight: 36)
             .background(Color.Roamrr.pill, in: Capsule())
-            .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+            .floatingShadow()
             .padding(.horizontal, theme.spacing.lg)
             .accessibilityElement(children: .combine)
     }
@@ -194,7 +197,7 @@ struct TripMapView: View {
             }
         }
         .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+        .floatingShadow()
         .padding(.trailing, theme.spacing.md)
         .padding(.top, store.isOffline ? 112 : 64)
     }
@@ -229,7 +232,7 @@ struct TripMapView: View {
             latitudeDelta: min(max(latitude, 0.0006), 40),
             longitudeDelta: min(max(longitude, 0.0006), 40)
         )
-        withAnimation(.easeInOut(duration: 0.35)) { camera = .region(MKCoordinateRegion(center: center, span: span)) }
+        withAnimation(DesignSystem.Motion.camera) { camera = .region(MKCoordinateRegion(center: center, span: span)) }
     }
 
     // MARK: People strip
@@ -263,7 +266,7 @@ struct TripMapView: View {
                         .padding(.trailing, theme.spacing.sm)
                         .frame(minHeight: 44)
                         .background(isOn ? Color.Roamrr.panel : Color.Roamrr.pill, in: Capsule())
-                        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+                        .floatingShadow()
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -337,7 +340,7 @@ struct TripMapView: View {
         .padding(theme.spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.background, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 12, y: 2)
+        .floatingShadow()
     }
 
     // MARK: Data
@@ -376,7 +379,7 @@ struct TripMapView: View {
         let spanLat = max((maxLat - minLat) * 2.4, 0.003)
         let spanLon = max((maxLon - minLon) * 2.4, 0.003)
         let center = CLLocationCoordinate2D(latitude: (maxLat + minLat) / 2 - spanLat * 0.17, longitude: (maxLon + minLon) / 2)
-        withAnimation {
+        withAnimation(DesignSystem.Motion.camera) {
             camera = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon)))
         }
     }
@@ -442,6 +445,7 @@ private struct Pin: View {
     let isYou: Bool
 
     @Environment(\.theme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     private var disc: CGFloat { isSelected ? 34 : (isDimmed ? 24 : 30) }
@@ -454,7 +458,7 @@ private struct Pin: View {
                     .frame(width: 34, height: 34)
                     .scaleEffect(pulse ? 1.7 : 0.8)
                     .opacity(pulse ? 0 : 0.8)
-                    .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: pulse)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 1.5).repeatForever(autoreverses: false), value: pulse)
                 Circle().fill(theme.accent.opacity(0.22)).frame(width: 46, height: 46)
             }
             Circle().fill(.white).frame(width: disc + 4, height: disc + 4)
@@ -462,10 +466,11 @@ private struct Pin: View {
                 .opacity(isLive || isSelected ? 1 : 0.75)
         }
         .opacity(isDimmed ? 0.6 : 1)
-        .shadow(color: .black.opacity(isDimmed ? 0.1 : 0.22), radius: 3, y: 1.5)
+        .markerShadow(softened: isDimmed)
         .animation(DesignSystem.Motion.enter, value: isSelected)
         .animation(DesignSystem.Motion.enter, value: isDimmed)
-        .onAppear { pulse = true }
+        .onAppear { pulse = !reduceMotion }
+        .onChange(of: reduceMotion) { _, reduce in pulse = !reduce }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(member.name), \(isLive ? "live" : "last seen")")
     }
@@ -480,7 +485,7 @@ private struct YouDot: View {
             .frame(width: 18, height: 18)
             .overlay(Circle().stroke(.white, lineWidth: 3))
             .background(Circle().fill(Color.Roamrr.panel.opacity(0.2)).frame(width: 44, height: 44))
-            .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+            .markerShadow()
             .accessibilityLabel("You")
     }
 }
@@ -503,7 +508,7 @@ private struct DistanceTag: View {
         .padding(.horizontal, 10)
         .frame(minHeight: 28)
         .background(Color.Roamrr.panel, in: Capsule())
-        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
+        .markerShadow()
         .accessibilityLabel("\(LiveTracker.label(distance)), \(seconds.map(LiveTracker.minutes) ?? LiveTracker.walk(distance))")
     }
 }
@@ -563,7 +568,7 @@ private struct FollowCard: View {
         }
         .padding(theme.spacing.md)
         .background(theme.background, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 12, y: 2)
+        .floatingShadow()
         .animation(DesignSystem.Motion.enter, value: distance.rounded())
         .accessibilityElement(children: .contain)
     }
@@ -653,7 +658,7 @@ private struct SharingBar: View {
         .padding(.trailing, theme.spacing.xs)
         .padding(.vertical, theme.spacing.xs)
         .background(Color.Roamrr.panel, in: Capsule())
-        .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+        .floatingShadow()
     }
 }
 
@@ -667,7 +672,7 @@ private struct MeetingFlag: View {
             .frame(width: 34, height: 34)
             .background(theme.accent, in: Circle())
             .overlay(Circle().stroke(.white, lineWidth: 2))
-            .shadow(color: .black.opacity(0.25), radius: 3, y: 1.5)
+            .markerShadow()
             .accessibilityLabel("Meeting point")
     }
 }
@@ -702,7 +707,7 @@ private struct MeetingBar: View {
         .padding(theme.spacing.xs)
         .padding(.leading, theme.spacing.xs)
         .background(theme.background, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+        .floatingShadow()
     }
 }
 

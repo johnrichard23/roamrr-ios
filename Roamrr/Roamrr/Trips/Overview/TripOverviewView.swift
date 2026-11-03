@@ -24,6 +24,7 @@ struct TripOverviewView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var showAddExpense = false
     @State private var confirmReopen = false
@@ -50,6 +51,8 @@ struct TripOverviewView: View {
                 }
                 tiles(trip)
                 chips(trip)
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, !trip.isPast(on: store.today) { addExpenseBar }
             }
             .padding(.bottom, theme.spacing.lg)
         }
@@ -57,13 +60,13 @@ struct TripOverviewView: View {
         .ignoresSafeArea(edges: .top)
         .background(theme.background)
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) {
-                Button("Add expense", systemImage: "plus") { showAddExpense = true }
-                    .buttonStyle(.ds(.ink))
-                    .padding(.horizontal, theme.spacing.lg).padding(.vertical, theme.spacing.xs)
+            if !isLandscape, !trip.isPast(on: store.today) {
+                addExpenseBar
+                    .padding(.vertical, theme.spacing.xs)
+                    .frame(maxWidth: .infinity)
+                    .background(theme.background)
             }
         }
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu("Trip options", systemImage: "ellipsis") {
@@ -84,14 +87,28 @@ struct TripOverviewView: View {
         }
     }
 
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private var addExpenseBar: some View {
+        Button("Add expense", systemImage: "plus") { showAddExpense = true }
+            .buttonStyle(.ds(.ink))
+            .padding(.horizontal, theme.spacing.lg)
+    }
+
     // MARK: Header
 
     private func header(_ trip: Trip) -> some View {
         VStack(alignment: .leading, spacing: theme.spacing.xs) {
             Text(trip.title).displayTitleStyle().foregroundStyle(theme.labelPrimary)
-            HStack(spacing: theme.spacing.xs) {
-                StageChip(title: stageTitle(trip))
-                Text(trip.overviewSubtitle(on: store.today)).textRole(.subheadline).foregroundStyle(theme.labelSecondary).lineLimit(1)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: theme.spacing.xs) {
+                    StageChip(title: stageTitle(trip))
+                    Text(trip.overviewSubtitle(on: store.today)).textRole(.subheadline).foregroundStyle(theme.labelSecondary).lineLimit(1)
+                }
+                VStack(alignment: .leading, spacing: theme.spacing.xs) {
+                    StageChip(title: stageTitle(trip))
+                    Text(trip.overviewSubtitle(on: store.today)).textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+                }
             }
         }
         .padding(.horizontal, theme.spacing.lg)
@@ -135,7 +152,7 @@ struct TripOverviewView: View {
                 }
             }
             .padding(theme.spacing.md)
-            .background(Color.Roamrr.panel, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .modifier(PanelCard())
             .padding(.horizontal, theme.spacing.lg)
         } else {
             VStack(alignment: .leading, spacing: theme.spacing.sm) {
@@ -151,7 +168,7 @@ struct TripOverviewView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(theme.spacing.md)
-            .background(Color.Roamrr.panel, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .modifier(PanelCard())
             .padding(.horizontal, theme.spacing.lg)
         }
     }
@@ -217,7 +234,7 @@ struct TripOverviewView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(theme.spacing.md)
-            .background(Color.Roamrr.panel, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .modifier(PanelCard())
         }
         .buttonStyle(.plain)
         .padding(.horizontal, theme.spacing.lg)
@@ -355,5 +372,17 @@ private struct MapTile: View {
             center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 + 0.002, longitude: (minLon + maxLon) / 2),
             span: MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 2.2, 0.02), longitudeDelta: max((maxLon - minLon) * 2.2, 0.02))
         )
+    }
+}
+
+/// The navy card on a trip's home. In dark mode it gets a hairline edge: the panel colour is almost the tile colour there.
+private struct PanelCard: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        content
+            .background(Color.Roamrr.panel, in: shape)
+            .overlay { if scheme == .dark { shape.strokeBorder(Color.white.opacity(0.14), lineWidth: 1) } }
     }
 }

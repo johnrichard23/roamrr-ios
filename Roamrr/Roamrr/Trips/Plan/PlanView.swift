@@ -12,6 +12,7 @@ struct PlanView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var tab: Tab
     @State private var filter: PlanCategory?
@@ -36,7 +37,7 @@ struct PlanView: View {
 
     private func content(_ trip: Trip) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: theme.spacing.sm) {
+            LazyVStack(alignment: .leading, spacing: theme.spacing.sm) {
                 Picker("View", selection: $tab) {
                     ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
@@ -54,6 +55,8 @@ struct PlanView: View {
                 } else {
                     days(trip)
                 }
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, !trip.isPast(on: store.today) { addIdeaBar }
             }
             .padding(.horizontal, theme.spacing.lg)
             .padding(.bottom, theme.spacing.lg)
@@ -62,6 +65,7 @@ struct PlanView: View {
         .background(theme.background)
         .navigationTitle("Plan")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .toolbar {
             if !trip.isPast(on: store.today) {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -70,9 +74,8 @@ struct PlanView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) {
-                Button("Add idea", systemImage: "plus") { showAdd = true }
-                    .buttonStyle(.ds(.ink))
+            if !isLandscape, !trip.isPast(on: store.today) {
+                addIdeaBar
                     .padding(.horizontal, theme.spacing.lg)
                     .padding(.vertical, theme.spacing.xs)
             }
@@ -80,6 +83,13 @@ struct PlanView: View {
         .sheet(isPresented: $showAdd) { AddIdeaSheet(trip: trip, editing: nil) }
         .sheet(item: $dayEditing) { item in AddToDaySheet(trip: trip, item: item) }
         .sheet(isPresented: $showDates) { SetDatesSheet(tripID: trip.id) }
+    }
+
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private var addIdeaBar: some View {
+        Button("Add idea", systemImage: "plus") { showAdd = true }
+            .buttonStyle(.ds(.ink))
     }
 
     private func react(_ reaction: PlanReaction, _ item: PlanItem) {

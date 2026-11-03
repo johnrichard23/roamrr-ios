@@ -57,6 +57,7 @@ struct ExpenseDetailView: View {
         .background(theme.background)
         .navigationTitle("Expense")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .toolbar {
             if canChange && !trip.isPast(on: store.today) {
                 ToolbarItem(placement: .topBarTrailing) {

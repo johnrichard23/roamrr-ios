@@ -8,6 +8,7 @@ enum PlanCategory: String, CaseIterable, Hashable {
     case activity = "Activity"
     case sights = "Sights"
     case stay = "Stay"
+    case travel = "Travel"
 
     var symbol: String {
         switch self {
@@ -15,6 +16,7 @@ enum PlanCategory: String, CaseIterable, Hashable {
         case .activity: "ticket"
         case .sights: "mappin.and.ellipse"
         case .stay: "bed.double"
+        case .travel: "airplane"
         }
     }
 
@@ -24,6 +26,7 @@ enum PlanCategory: String, CaseIterable, Hashable {
         case .food: .food
         case .activity, .sights: .activity
         case .stay: .stay
+        case .travel: .transport
         }
     }
 }
@@ -115,8 +118,10 @@ struct PlanItem: Identifiable, Hashable {
     var score: Int { reactions.values.reduce(0) { $0 + $1.weight } }
 
     /// "6:00 AM"
-    var timeText: String? {
-        guard let minutes else { return nil }
+    var timeText: String? { minutes.map(Self.clockText) }
+
+    /// "6:00 AM", from minutes after midnight.
+    static func clockText(_ minutes: Int) -> String {
         let hour = minutes / 60
         return String(format: "%d:%02d %@", hour % 12 == 0 ? 12 : hour % 12, minutes % 60, hour < 12 ? "AM" : "PM")
     }

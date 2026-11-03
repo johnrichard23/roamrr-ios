@@ -7,6 +7,8 @@ import RoamrrDesign
 @Observable
 final class TripsStore {
     private(set) var trips: [Trip]
+    /// Passport, ID and insurance cards. They live on this phone only and are not part of any trip.
+    private(set) var myDocuments: [PersonalDocument]
     let today: Date
     let me: AvatarMember
     private let created = Date()
@@ -18,8 +20,12 @@ final class TripsStore {
     /// No usable connection, or the tester has switched it off.
     var isOffline: Bool { networkDown || forcedOffline }
 
-    init(trips: [Trip] = MockData.trips, today: Date = MockData.today, me: AvatarMember = MockData.you) {
+    init(
+        trips: [Trip] = MockData.trips, myDocuments: [PersonalDocument] = MockData.myDocuments,
+        today: Date = MockData.today, me: AvatarMember = MockData.you
+    ) {
         self.trips = trips
+        self.myDocuments = myDocuments
         self.today = today
         self.me = me
     }
@@ -171,6 +177,36 @@ final class TripsStore {
     /// You leave a trip you don't own. Mock: it just goes from this phone; the real app keeps it under Past trips.
     func leave(_ tripID: Trip.ID) {
         trips.removeAll { $0.id == tripID }
+    }
+
+    // MARK: Documents
+
+    /// Saves a booking and, when `day` is given, puts it on that day of the plan. Only the title, place and time
+    /// reach the plan; the file and the confirmation number stay on the document.
+    func addDocument(_ document: TripDocument, onDay day: Date?, in tripID: Trip.ID) {
+        guard let index = trips.firstIndex(where: { $0.id == tripID }) else { return }
+        var saved = document
+        saved.isPending = isOffline
+        if let day, let category = document.kind.planCategory {
+            let item = PlanItem(id: UUID(), title: document.title, category: category, placeName: document.place, addedBy: me)
+            saved.planItemID = item.id
+            addIdea(item, in: tripID)
+            schedule(item.id, day: day, minutes: document.minutes, audience: .everyone, in: tripID)
+        }
+        trips[index].documents.append(saved)
+    }
+
+    func deleteDocument(_ id: TripDocument.ID, in tripID: Trip.ID) {
+        guard let index = trips.firstIndex(where: { $0.id == tripID }) else { return }
+        trips[index].documents.removeAll { $0.id == id }
+    }
+
+    func addMyDocument(_ document: PersonalDocument) {
+        myDocuments.append(document)
+    }
+
+    func deleteMyDocument(_ id: PersonalDocument.ID) {
+        myDocuments.removeAll { $0.id == id }
     }
 
     // MARK: Trip plan

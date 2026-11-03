@@ -161,12 +161,15 @@ struct PlanningHomeView: View {
     }
 
     private func chips(_ trip: Trip) -> some View {
-        HStack(spacing: theme.spacing.xs) {
+        FlowLayout(spacing: theme.spacing.xs) {
             NavigationLink(value: TripSection.itinerary) {
                 chip("calendar", "Itinerary", trip.plannedDayCount == 0 ? "Draft" : "\(trip.plannedDayCount) \(trip.plannedDayCount == 1 ? "day" : "days")")
             }
             Button { showExpense = true } label: {
                 chip("wallet.pass", "Expense", trip.expenses.isEmpty ? "None" : Money.compact(trip.spent ?? 0))
+            }
+            NavigationLink(value: TripSection.documents) {
+                chip("doc.text", "Documents", "\(trip.documents(for: store.me).count)")
             }
         }
         .buttonStyle(.plain)

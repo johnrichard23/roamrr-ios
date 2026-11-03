@@ -50,6 +50,8 @@ struct Trip: Identifiable, Hashable {
     var staying: Set<String> = []
     /// Ideas and the day-by-day plan.
     var plan: [PlanItem] = []
+    /// Bookings people added: flights, stays, tours, insurance.
+    var documents: [TripDocument] = []
     /// Whether this phone hears about the trip. Per person, not per trip.
     var notificationsOn = true
 

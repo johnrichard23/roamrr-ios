@@ -41,5 +41,10 @@ extension DesignSystem.Theme {
             $0.card = 24
         }
         $0.size = .standard.with { $0.buttonHeight = 52 }
+        // Over a map the default shadow is too faint to separate a card from the tiles under it.
+        $0.elevation = .standard.with {
+            $0.color = .black.opacity(0.15)
+            $0.radius = 8
+        }
     }
 }

@@ -39,9 +39,11 @@ struct TripCoverCard<Top: View, Bottom: View>: View {
             Text(trip.title)
                 .font(.system(.title2, design: .serif, weight: .medium))
                 .foregroundStyle(Color.Roamrr.onPanel)
+                .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
                 .textRole(.subheadline)
                 .foregroundStyle(Color.Roamrr.onPanelSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             bottom.padding(.top, theme.spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

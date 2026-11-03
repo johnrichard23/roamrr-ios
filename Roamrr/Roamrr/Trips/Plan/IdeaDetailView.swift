@@ -7,6 +7,7 @@ struct IdeaDetailView: View {
     let itemID: PlanItem.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dismiss) private var dismiss
     @Environment(TripsStore.self) private var store
     @State private var showDay = false
@@ -55,6 +56,8 @@ struct IdeaDetailView: View {
                     Text("Only \(item.addedBy.name.split(separator: " ").first.map(String.init) ?? item.addedBy.name) or the trip owner can change this.")
                         .textRole(.subheadline).foregroundStyle(theme.labelSecondary).frame(maxWidth: .infinity)
                 }
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape, canSchedule(trip) { dayButton(trip, item) }
             }
             .padding(.horizontal, theme.spacing.lg)
             .padding(.bottom, theme.spacing.lg)
@@ -63,15 +66,15 @@ struct IdeaDetailView: View {
         .background(theme.background)
         .navigationTitle("Idea")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .toolbar {
             if canChange && !trip.isPast(on: store.today) {
                 ToolbarItem(placement: .topBarTrailing) { Button("Edit") { showEdit = true } }
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if !trip.isPast(on: store.today) && !trip.days.isEmpty {
-                Button(item.day == nil ? "Add to a day" : "Change day or time", systemImage: "calendar") { showDay = true }
-                    .buttonStyle(.ds(.ink))
+            if !isLandscape, canSchedule(trip) {
+                dayButton(trip, item)
                     .padding(.horizontal, theme.spacing.lg).padding(.vertical, theme.spacing.xs)
             }
         }
@@ -87,6 +90,15 @@ struct IdeaDetailView: View {
         } message: {
             Text("It's removed for everyone, along with its votes.")
         }
+    }
+
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
+    private func canSchedule(_ trip: Trip) -> Bool { !trip.isPast(on: store.today) && !trip.days.isEmpty }
+
+    private func dayButton(_ trip: Trip, _ item: PlanItem) -> some View {
+        Button(item.day == nil ? "Add to a day" : "Change day or time", systemImage: "calendar") { showDay = true }
+            .buttonStyle(.ds(.ink))
     }
 
     // MARK: Pieces

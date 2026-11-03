@@ -61,6 +61,7 @@ struct TripSettingsView: View {
         .background(theme.background)
         .navigationTitle("Trip settings")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .sheet(isPresented: $showName) { RenameSheet(tripID: tripID, current: trip.title) }
         .sheet(isPresented: $showDates) {
             SetDatesSheet(tripID: tripID, current: trip.datesDecided ? (trip.start, trip.end) : nil)

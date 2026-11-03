@@ -11,16 +11,30 @@ struct TripHeroCard: View {
 
     var body: some View {
         TripCoverCard(trip: trip, subtitle: "\(trip.dates) · \(trip.peopleCount) people") {
-            HStack {
-                statusChip
-                Spacer()
-                if trip.newCount > 0 { newChip }
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    statusChip
+                    Spacer()
+                    if trip.newCount > 0 { newChip }
+                }
+                VStack(alignment: .leading, spacing: theme.spacing.xs) {
+                    statusChip
+                    if trip.newCount > 0 { newChip }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         } bottom: {
-            HStack(alignment: .bottom) {
-                AvatarStack(trip.everyone(with: me), diameter: 32, ring: Color.Roamrr.panel)
-                Spacer()
-                owed
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom) {
+                    AvatarStack(trip.everyone(with: me), diameter: 32, ring: Color.Roamrr.panel)
+                    Spacer()
+                    owed(.trailing)
+                }
+                VStack(alignment: .leading, spacing: theme.spacing.xs) {
+                    AvatarStack(trip.everyone(with: me), diameter: 32, ring: Color.Roamrr.panel)
+                    owed(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .accessibilityElement(children: .contain)
@@ -50,9 +64,9 @@ struct TripHeroCard: View {
     }
 
     @ViewBuilder
-    private var owed: some View {
+    private func owed(_ alignment: HorizontalAlignment) -> some View {
         if trip.isPlanning {
-            VStack(alignment: .trailing, spacing: 0) {
+            VStack(alignment: alignment, spacing: 0) {
                 Text("ideas so far")
                     .textRole(.footnote)
                     .foregroundStyle(Color.Roamrr.onPanelSecondary)
@@ -61,7 +75,7 @@ struct TripHeroCard: View {
                     .foregroundStyle(Color.Roamrr.onPanel)
             }
         } else if let balance = trip.balance, balance != 0 {
-            VStack(alignment: .trailing, spacing: 0) {
+            VStack(alignment: alignment, spacing: 0) {
                 Text(balance > 0 ? "you're owed" : "you owe")
                     .textRole(.footnote)
                     .foregroundStyle(Color.Roamrr.onPanelSecondary)

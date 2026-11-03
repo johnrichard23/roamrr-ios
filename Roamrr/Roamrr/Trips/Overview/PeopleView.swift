@@ -33,6 +33,7 @@ struct PeopleView: View {
         .background(theme.background)
         .navigationTitle("People")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {
             if !trip.isPast(on: store.today) {
                 ShareLink(item: shareText(trip)) {

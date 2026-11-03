@@ -31,6 +31,7 @@ struct BalancesView: View {
         .background(theme.background)
         .navigationTitle("Balances")
         .navigationBarTitleDisplayMode(.inline)
+        .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {
             if !trip.isPast(on: store.today) {
                 Button("Record payment", systemImage: "wallet.pass") { paymentSeed = PaymentSeed(settlement: nil) }

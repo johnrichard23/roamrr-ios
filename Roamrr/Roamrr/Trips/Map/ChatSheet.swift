@@ -180,7 +180,8 @@ struct ChatSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(alignment: .topTrailing) {
                             Button("Remove photo", systemImage: "xmark.circle.fill") { self.photo = nil }
-                                .labelStyle(.iconOnly).foregroundStyle(.white, .black.opacity(0.6)).offset(x: 6, y: -6)
+                                .labelStyle(.iconOnly).foregroundStyle(.white, .black.opacity(0.6))
+                                .padding(11).contentShape(Rectangle()).offset(x: 17, y: -17)
                         }
                     Spacer()
                 }

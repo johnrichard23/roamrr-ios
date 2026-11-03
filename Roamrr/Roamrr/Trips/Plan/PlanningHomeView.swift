@@ -6,6 +6,7 @@ struct PlanningHomeView: View {
     let tripID: Trip.ID
 
     @Environment(\.theme) private var theme
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(TripsStore.self) private var store
     @State private var showAdd = false
     @State private var showDates = false
@@ -21,6 +22,8 @@ struct PlanningHomeView: View {
         }
     }
 
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
     private func isOwner(_ trip: Trip) -> Bool { trip.owner == nil || trip.owner == store.me }
 
     private func content(_ trip: Trip) -> some View {
@@ -31,14 +34,15 @@ struct PlanningHomeView: View {
                 topIdeas(trip)
                 voted(trip)
                 chips(trip)
+                // In landscape a pinned bar would cover a third of the screen, so it scrolls with the content.
+                if isLandscape { dock(trip) }
             }
             .padding(.bottom, theme.spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
         .ignoresSafeArea(edges: .top)
         .background(theme.background)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) { dock(trip) }
+        .safeAreaInset(edge: .bottom) { if !isLandscape { dock(trip) } }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu("Trip options", systemImage: "ellipsis") {

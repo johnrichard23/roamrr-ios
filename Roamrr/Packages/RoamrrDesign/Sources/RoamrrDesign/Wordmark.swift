@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Roam" in ink and "rr" in apricot.
+/// "Roam" in navy ink and "rr" in burnt orange, one serif weight.
 public struct Wordmark: View {
     public init() {}
 
@@ -9,7 +9,8 @@ public struct Wordmark: View {
             Text("Roam").foregroundStyle(Color.Roamrr.ink)
             Text("rr").foregroundStyle(Color.Roamrr.wordmarkRR)
         }
-        .font(.system(.largeTitle, design: .rounded, weight: .semibold))
+        .font(.system(.largeTitle, design: .serif, weight: .bold))
+        .tracking(-0.3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Roamrr")
     }

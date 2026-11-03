@@ -4,12 +4,23 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.theme) private var theme
+    @State private var isSignedIn = false
     private let environment = AppEnvironment(bundleIdentifier: Bundle.main.bundleIdentifier ?? "")
 
     var body: some View {
-        WelcomeView()
+        Group {
+            if isSignedIn {
+                MainTabView()
+            } else {
+                WelcomeView(
+                    onApple: { isSignedIn = true },
+                    onGoogle: { isSignedIn = true },
+                    onFacebook: { isSignedIn = true }
+                )
+            }
+        }
             .overlay(alignment: .top) {
-                if environment != .prod {
+                if environment != .prod && !isSignedIn {
                     Text("\(environment.rawValue.capitalized) build")
                         .textRole(.caption1)
                         .foregroundStyle(theme.labelSecondary)

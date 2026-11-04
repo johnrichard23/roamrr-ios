@@ -20,6 +20,10 @@ struct TripMapView: View {
     @State private var tilesCovered = true
     /// Moves forward on the same beat as the pins, so freshness is judged against the time now and not a fixed moment.
     @State private var clock = Date()
+    /// True once MapKit has downloaded the tiles for the opening view, so the cover can lift on a drawn map.
+    @State private var tilesLoaded = false
+    @State private var tileSnapshotter: MKMapSnapshotter?
+    @Environment(\.displayScale) private var displayScale
     @State private var tracker = LiveTracker(me: CLLocationCoordinate2D(latitude: 9.7960, longitude: 126.1590))
 
     var body: some View {
@@ -87,13 +91,14 @@ struct TripMapView: View {
             }
         }
         .task {
-            // Long enough for the zoom to land and the first tiles to draw, then the map fades in.
+            loadOpeningTiles(trip)
+            // Long enough for the zoom to land, then until the tiles for the opening view are in. If they never come,
+            // for example offline, the cover lifts after another two seconds and the map shows what it has.
             try? await Task.sleep(for: .milliseconds(450))
-            // Then until the camera has settled, for at most another second. MapKit does not say when its tiles are drawn.
-            var extra = 0
-            while region == nil, extra < 10 {
+            var waited = 0
+            while !(tilesLoaded && region != nil), waited < 20 {
                 try? await Task.sleep(for: .milliseconds(100))
-                extra += 1
+                waited += 1
             }
             withAnimation(DesignSystem.Motion.enter) { tilesCovered = false }
         }
@@ -403,16 +408,41 @@ struct TripMapView: View {
 
     /// Frames these points with room under them for the card.
     private func frame(_ points: [CLLocationCoordinate2D], minSpan: Double = 0.003, animated: Bool = true) {
-        let lats = points.map(\.latitude), lons = points.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return }
-        let spanLat = max((maxLat - minLat) * 2.4, minSpan)
-        let spanLon = max((maxLon - minLon) * 2.4, minSpan)
-        let center = CLLocationCoordinate2D(latitude: (maxLat + minLat) / 2 - spanLat * 0.17, longitude: (maxLon + minLon) / 2)
-        let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon))
+        guard let region = framingRegion(points, minSpan: minSpan) else { return }
         if animated {
             withAnimation(DesignSystem.Motion.camera) { camera = .region(region) }
         } else {
             camera = .region(region)
+        }
+    }
+
+    /// These points with room around them and under them for the card, or nil when there are none.
+    private func framingRegion(_ points: [CLLocationCoordinate2D], minSpan: Double) -> MKCoordinateRegion? {
+        let lats = points.map(\.latitude), lons = points.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+        let spanLat = max((maxLat - minLat) * 2.4, minSpan)
+        let spanLon = max((maxLon - minLon) * 2.4, minSpan)
+        let center = CLLocationCoordinate2D(latitude: (maxLat + minLat) / 2 - spanLat * 0.17, longitude: (maxLon + minLon) / 2)
+        return MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon))
+    }
+
+    /// Asks MapKit for a picture of the opening view. It finishes when the tiles for that view have been downloaded, which
+    /// is the nearest thing MapKit gives to "the first tiles are ready", and the live map then draws from the same tiles.
+    private func loadOpeningTiles(_ trip: Trip) {
+        let points = trip.locations.compactMap { tracker.positions[$0.id] ?? $0.coordinate } + [tracker.me]
+            + (trip.meetingPoint.map { [$0.coordinate] } ?? [])
+        guard let region = framingRegion(points, minSpan: 0.012) else {
+            tilesLoaded = true
+            return
+        }
+        let options = MKMapSnapshotter.Options()
+        options.region = region
+        options.size = CGSize(width: 402, height: 874)
+        options.scale = displayScale
+        let snapshotter = MKMapSnapshotter(options: options)
+        tileSnapshotter = snapshotter
+        snapshotter.start { _, _ in
+            Task { @MainActor in tilesLoaded = true }
         }
     }
 

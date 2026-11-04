@@ -18,10 +18,13 @@ struct TripMapView: View {
     @State private var meetingSeed: MeetingSeed?
     /// False while the map is still drawing its first tiles, so the blank grid never shows during the zoom in.
     @State private var tilesCovered = true
+    /// Moves forward on the same beat as the pins, so freshness is judged against the time now and not a fixed moment.
+    @State private var clock = Date()
     @State private var tracker = LiveTracker(me: CLLocationCoordinate2D(latitude: 9.7960, longitude: 126.1590))
 
     var body: some View {
         if let trip = store.trip(id: tripID) {
+            let _ = clock // read here, so the pins are judged again each time it moves
             content(trip)
         } else {
             ContentUnavailableView("Trip not found", systemImage: "suitcase")
@@ -44,7 +47,7 @@ struct TripMapView: View {
                 if let spot = tracker.positions[location.id] {
                     Annotation(location.member.name, coordinate: spot, anchor: .center) {
                         Pin(
-                            member: location.member, isLive: location.isLive(on: store.today),
+                            member: location.member, isLive: location.isLive(on: store.now),
                             isSelected: selectedID == location.id, isDimmed: selectedID != nil && selectedID != location.id,
                             isYou: false
                         )
@@ -86,6 +89,12 @@ struct TripMapView: View {
         .task {
             // Long enough for the zoom to land and the first tiles to draw, then the map fades in.
             try? await Task.sleep(for: .milliseconds(450))
+            // Then until the camera has settled, for at most another second. MapKit does not say when its tiles are drawn.
+            var extra = 0
+            while region == nil, extra < 10 {
+                try? await Task.sleep(for: .milliseconds(100))
+                extra += 1
+            }
             withAnimation(DesignSystem.Motion.enter) { tilesCovered = false }
         }
         .ignoresSafeArea(edges: .bottom)
@@ -95,7 +104,8 @@ struct TripMapView: View {
                 if store.isOffline { offlineBanner }
             }
         }
-        .overlay(alignment: .bottom) { bottom(trip) }
+        // An inset, not an overlay, so the controls always sit above the tab bar and are never covered by it.
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottom(trip) }
         .navigationTitle(trip.title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .topTrailing) { zoomControls(trip) }
@@ -116,6 +126,7 @@ struct TripMapView: View {
         .task(id: tripID) {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
+                clock = Date()
                 if store.isOffline { continue }
                 tracker.tick(following: selectedID, held: store.trip(id: tripID)?.staying ?? [])
             }
@@ -259,7 +270,7 @@ struct TripMapView: View {
                     Button { select(location.id, trip) } label: {
                         HStack(spacing: theme.spacing.xs) {
                             MemberAvatar(location.member, diameter: 32)
-                                .opacity(location.isLive(on: store.today) ? 1 : 0.6)
+                                .opacity(location.isLive(on: store.now) ? 1 : 0.6)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(firstName(location.member)).textRole(.subheadline, emphasized: true)
                                 HStack(spacing: 4) {
@@ -310,7 +321,7 @@ struct TripMapView: View {
             }
             if let selected = selectedLocation(trip) {
                 FollowCard(
-                    location: selected, tracker: tracker, now: store.today,
+                    location: selected, tracker: tracker, now: store.now,
                     distance: walkDistance(selected.id), seconds: route(for: selected.id)?.seconds,
                     isHeld: trip.staying.contains(selected.id), isOffline: store.isOffline, onMessage: { chatMember = selected.member },
                     onDirections: { openDirections(to: selected) }, onClose: { selectedID = nil; fitAll(trip) }
@@ -458,7 +469,7 @@ extension MemberLocation {
 
 /// A person on the map, sized like ridecommand's rider marker: a small coloured disc with a thin white border. Whoever you
 /// are following is a touch larger with a soft halo and a stronger pulse; everyone else steps back. Anyone sharing live
-/// gives off a gentle pulse in the accent colour, and someone who is not live does not. The distance is not repeated here.
+/// gives off a gentle pulse in the steel-blue live colour, and someone who is not live does not, even when followed. The distance is not repeated here.
 private struct Pin: View {
     let member: AvatarMember
     let isLive: Bool
@@ -470,8 +481,8 @@ private struct Pin: View {
 
     private var disc: CGFloat { isSelected ? 34 : (isDimmed ? 24 : 30) }
 
-    /// Live and not stepped back behind someone else being followed.
-    private var pulses: Bool { isSelected || (isLive && !isDimmed) }
+    /// Live, and either the one being followed or not stepped back behind someone who is.
+    private var pulses: Bool { isLive && (isSelected || !isDimmed) }
 
     var body: some View {
         ZStack {

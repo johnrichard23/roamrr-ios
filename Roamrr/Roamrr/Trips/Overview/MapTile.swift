@@ -10,10 +10,21 @@ struct MapTile: View {
     @Environment(\.theme) private var theme
     @Environment(\.mapZoomNamespace) private var zoomNamespace
     @Environment(TripsStore.self) private var store
+    @State private var camera: MapCameraPosition
+
+    init(trip: Trip) {
+        self.trip = trip
+        _camera = State(initialValue: Self.region(for: Self.peoplePoints(trip)).map { .region($0) } ?? .automatic)
+    }
 
     var body: some View {
+        // Redrawn every 15 seconds, so someone whose last update gets old stops counting as live while the tile is open.
+        TimelineView(.periodic(from: .now, by: 15)) { _ in tile }
+    }
+
+    private var tile: some View {
         ZStack(alignment: .bottom) {
-            if trip.locations.isEmpty, trip.meetingPoint == nil {
+            if trip.locations.isEmpty, trip.meetingPoint == nil, plannedToday.isEmpty {
                 Color.Roamrr.pill
                 Image(systemName: "map").font(.system(size: 28)).foregroundStyle(theme.labelTertiary).offset(y: -22)
             } else {
@@ -33,7 +44,7 @@ struct MapTile: View {
     // MARK: Map
 
     private var map: some View {
-        Map(initialPosition: .region(region), interactionModes: []) {
+        Map(position: $camera, interactionModes: []) {
             // Today's planned places, as small flags that stay behind the people.
             ForEach(plannedToday) { item in
                 if let spot = item.coordinate {
@@ -56,6 +67,11 @@ struct MapTile: View {
         .allowsHitTesting(false)
         // A flat wash in the palette's own canvas colour, so the map sits in the page and not on top of it.
         .overlay { Color.Roamrr.canvas.opacity(0.1).allowsHitTesting(false) }
+        .onAppear { if let region { camera = .region(region) } }
+        // A new meeting point, or someone moving far, brings the camera with it: the map is not left on the old frame.
+        .onChange(of: framePoints.flatMap { [$0.latitude, $0.longitude] }) {
+            if let region { withAnimation(DesignSystem.Motion.camera) { camera = .region(region) } }
+        }
     }
 
     // MARK: Label
@@ -92,13 +108,23 @@ struct MapTile: View {
         }
     }
 
-    /// Everyone, plus the meeting point, with room around them. Planned flags never stretch the view.
-    private var region: MKCoordinateRegion {
-        let points = trip.locations.map(\.coordinate) + (trip.meetingPoint.map { [$0.coordinate] } ?? [])
+    /// What the camera frames: everyone and the meeting point, and only when there is no one and no meeting point, the
+    /// places planned for today.
+    private var framePoints: [CLLocationCoordinate2D] {
+        let people = Self.peoplePoints(trip)
+        return people.isEmpty ? plannedToday.compactMap(\.coordinate) : people
+    }
+
+    private var region: MKCoordinateRegion? { Self.region(for: framePoints) }
+
+    private static func peoplePoints(_ trip: Trip) -> [CLLocationCoordinate2D] {
+        trip.locations.map(\.coordinate) + (trip.meetingPoint.map { [$0.coordinate] } ?? [])
+    }
+
+    /// These points with room around them, or nil when there are none.
+    private static func region(for points: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
         let lats = points.map(\.latitude), lons = points.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else {
-            return MKCoordinateRegion()
-        }
+        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return nil }
         return MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 + 0.002, longitude: (minLon + maxLon) / 2),
             span: MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 2.2, 0.02), longitudeDelta: max((maxLon - minLon) * 2.2, 0.02))

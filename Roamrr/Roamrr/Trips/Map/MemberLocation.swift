@@ -50,7 +50,8 @@ struct SharingSession: Hashable {
 extension Trip {
     /// Everyone live on the map right now, you included while you share.
     func sharingLive(on now: Date, me: AvatarMember) -> [AvatarMember] {
-        (mySharing == nil ? [] : [me]) + locations.filter { $0.isLive(on: now) }.map(\.member)
+        let sharing = mySharing.map { $0.end > now } ?? false
+        return (sharing ? [me] : []) + locations.filter { $0.isLive(on: now) }.map(\.member)
     }
 }
 

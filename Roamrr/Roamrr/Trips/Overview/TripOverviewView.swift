@@ -247,7 +247,7 @@ struct TripOverviewView: View {
     private func tiles(_ trip: Trip) -> some View {
         HStack(alignment: .top, spacing: theme.spacing.xs) {
             if !trip.isPast(on: store.today) {
-                NavigationLink(value: TripSection.map) { MapTile(trip: trip) }.buttonStyle(.plain)
+                NavigationLink(value: TripSection.map) { MapTile(trip: trip) }.buttonStyle(MapTilePressStyle())
             }
             VStack(spacing: theme.spacing.xs) {
                 if !trip.isPast(on: store.today) {
@@ -333,63 +333,6 @@ struct TripOverviewView: View {
         .background(Color.Roamrr.pill, in: Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(title), \(value)")
-    }
-}
-
-/// A small, still map of who is sharing, with a label. Tapping it opens the full map.
-private struct MapTile: View {
-    let trip: Trip
-
-    @Environment(\.theme) private var theme
-    @Environment(TripsStore.self) private var store
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            if trip.locations.isEmpty {
-                Color.Roamrr.pill
-                Image(systemName: "map").font(.system(size: 28)).foregroundStyle(theme.labelTertiary).offset(y: -22)
-            } else {
-                Map(initialPosition: .region(region), interactionModes: []) {
-                    ForEach(trip.locations) { location in
-                        Annotation("", coordinate: location.coordinate, anchor: .center) {
-                            MemberAvatar(location.member, diameter: 28, ring: .white).shadow(color: .black.opacity(0.2), radius: 3, y: 1)
-                        }
-                    }
-                }
-                .mapControlVisibility(.hidden)
-                .allowsHitTesting(false)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                Text(label).textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary).lineLimit(1)
-                Text(detail).textRole(.footnote).foregroundStyle(theme.labelSecondary).lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.Roamrr.pill.opacity(0.95), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .padding(8)
-        }
-        .frame(maxWidth: .infinity, minHeight: 160, maxHeight: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Map, \(label)")
-    }
-
-    private var live: Int { trip.sharingLive(on: store.now, me: store.me).count }
-
-    private var label: String { trip.locations.isEmpty ? "Map" : "\(live) sharing live" }
-
-    private var detail: String { trip.locations.isEmpty ? "No one is sharing" : "Tap to find them" }
-
-    private var region: MKCoordinateRegion {
-        let points = trip.locations.map(\.coordinate)
-        let lats = points.map(\.latitude), lons = points.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else {
-            return MKCoordinateRegion()
-        }
-        return MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 + 0.002, longitude: (minLon + maxLon) / 2),
-            span: MKCoordinateSpan(latitudeDelta: max((maxLat - minLat) * 2.2, 0.02), longitudeDelta: max((maxLon - minLon) * 2.2, 0.02))
-        )
     }
 }
 

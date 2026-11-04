@@ -35,6 +35,10 @@ public enum Palette {
     /// Small filled chips such as "4 new" on a cover, with `onInk` text.
     public static let accentFill = ColorToken(light: 0x934414, dark: 0xF0975E)
 
+    // Live: someone sharing their location right now. A steel blue inside the navy family, so the map's pulse is not the
+    // accent orange and still never the bright blue of a payment app.
+    public static let live = ColorToken(light: 0x4A6FA5, dark: 0x8FB0DC)
+
     // Status
     public static let danger = ColorToken(light: 0xA81D44, dark: 0xFF8FA3)
     public static let dangerTint = ColorToken(light: 0xF6E1E5, dark: 0x3A1A22)

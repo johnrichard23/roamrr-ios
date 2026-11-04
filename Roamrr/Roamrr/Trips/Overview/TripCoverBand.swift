@@ -46,6 +46,7 @@ struct TripHomeView: View {
     let tripID: Trip.ID
 
     @Environment(TripsStore.self) private var store
+    @Namespace private var mapZoom
 
     var body: some View {
         Group {
@@ -59,6 +60,7 @@ struct TripHomeView: View {
                 ContentUnavailableView("Trip not found", systemImage: "suitcase")
             }
         }
+        .environment(\.mapZoomNamespace, mapZoom)
         .navigationDestination(for: TripSection.self) { section in
             switch section {
             case .balances: BalancesView(tripID: tripID)
@@ -66,7 +68,7 @@ struct TripHomeView: View {
             case .plan: PlanView(tripID: tripID)
             case .itinerary: PlanView(tripID: tripID, startOnDays: true)
             case .people: PeopleView(tripID: tripID)
-            case .map: TripMapView(tripID: tripID)
+            case .map: TripMapView(tripID: tripID).mapZoomDestination(in: mapZoom)
             case .documents: DocumentsView(tripID: tripID)
             case .myDocuments: MyDocumentsView()
             }

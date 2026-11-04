@@ -16,10 +16,19 @@ struct TripMapView: View {
     @State private var route: WalkingRoute?
     @State private var chatMember: AvatarMember?
     @State private var meetingSeed: MeetingSeed?
+    /// False while the map is still drawing its first tiles, so the blank grid never shows during the zoom in.
+    @State private var tilesCovered = true
+    /// Moves forward on the same beat as the pins, so freshness is judged against the time now and not a fixed moment.
+    @State private var clock = Date()
+    /// True once MapKit has downloaded the tiles for the opening view, so the cover can lift on a drawn map.
+    @State private var tilesLoaded = false
+    @State private var tileSnapshotter: MKMapSnapshotter?
+    @Environment(\.displayScale) private var displayScale
     @State private var tracker = LiveTracker(me: CLLocationCoordinate2D(latitude: 9.7960, longitude: 126.1590))
 
     var body: some View {
         if let trip = store.trip(id: tripID) {
+            let _ = clock // read here, so the pins are judged again each time it moves
             content(trip)
         } else {
             ContentUnavailableView("Trip not found", systemImage: "suitcase")
@@ -42,7 +51,7 @@ struct TripMapView: View {
                 if let spot = tracker.positions[location.id] {
                     Annotation(location.member.name, coordinate: spot, anchor: .center) {
                         Pin(
-                            member: location.member, isLive: location.isLive(on: store.today),
+                            member: location.member, isLive: location.isLive(on: store.now),
                             isSelected: selectedID == location.id, isDimmed: selectedID != nil && selectedID != location.id,
                             isYou: false
                         )
@@ -73,7 +82,26 @@ struct TripMapView: View {
             }
             .annotationTitles(.hidden)
         }
+        // The same calm style as the tile on the trip home, but with places kept: you use this map to find people and spots.
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted))
         .mapControlVisibility(.hidden)
+        .overlay {
+            if tilesCovered {
+                Color.Roamrr.canvas.ignoresSafeArea().allowsHitTesting(false).transition(.opacity)
+            }
+        }
+        .task {
+            loadOpeningTiles(trip)
+            // Long enough for the zoom to land, then until the tiles for the opening view are in. If they never come,
+            // for example offline, the cover lifts after another two seconds and the map shows what it has.
+            try? await Task.sleep(for: .milliseconds(450))
+            var waited = 0
+            while !(tilesLoaded && region != nil), waited < 20 {
+                try? await Task.sleep(for: .milliseconds(100))
+                waited += 1
+            }
+            withAnimation(DesignSystem.Motion.enter) { tilesCovered = false }
+        }
         .ignoresSafeArea(edges: .bottom)
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 0) {
@@ -81,10 +109,10 @@ struct TripMapView: View {
                 if store.isOffline { offlineBanner }
             }
         }
-        .overlay(alignment: .bottom) { bottom(trip) }
+        // An inset, not an overlay, so the controls always sit above the tab bar and are never covered by it.
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottom(trip) }
         .navigationTitle(trip.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .overlay(alignment: .topTrailing) { zoomControls(trip) }
         .toolbar {
             #if DEBUG
@@ -98,11 +126,12 @@ struct TripMapView: View {
         .onMapCameraChange(frequency: .onEnd) { region = $0.region }
         .onAppear {
             tracker.load(trip.locations, now: store.today)
-            fitAll(trip)
+            fitAll(trip, animated: false)
         }
         .task(id: tripID) {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
+                clock = Date()
                 if store.isOffline { continue }
                 tracker.tick(following: selectedID, held: store.trip(id: tripID)?.staying ?? [])
             }
@@ -246,7 +275,7 @@ struct TripMapView: View {
                     Button { select(location.id, trip) } label: {
                         HStack(spacing: theme.spacing.xs) {
                             MemberAvatar(location.member, diameter: 32)
-                                .opacity(location.isLive(on: store.today) ? 1 : 0.6)
+                                .opacity(location.isLive(on: store.now) ? 1 : 0.6)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(firstName(location.member)).textRole(.subheadline, emphasized: true)
                                 HStack(spacing: 4) {
@@ -297,7 +326,7 @@ struct TripMapView: View {
             }
             if let selected = selectedLocation(trip) {
                 FollowCard(
-                    location: selected, tracker: tracker, now: store.today,
+                    location: selected, tracker: tracker, now: store.now,
                     distance: walkDistance(selected.id), seconds: route(for: selected.id)?.seconds,
                     isHeld: trip.staying.contains(selected.id), isOffline: store.isOffline, onMessage: { chatMember = selected.member },
                     onDirections: { openDirections(to: selected) }, onClose: { selectedID = nil; fitAll(trip) }
@@ -368,19 +397,52 @@ struct TripMapView: View {
         }
     }
 
-    private func fitAll(_ trip: Trip) {
-        frame(trip.locations.compactMap { tracker.positions[$0.id] ?? $0.coordinate } + [tracker.me] + (trip.meetingPoint.map { [$0.coordinate] } ?? []))
+    /// Everyone, you and the meeting point in one view. The view is never tighter than about a kilometre, so one person
+    /// alone is shown with their surroundings and not a street corner.
+    private func fitAll(_ trip: Trip, animated: Bool = true) {
+        frame(
+            trip.locations.compactMap { tracker.positions[$0.id] ?? $0.coordinate } + [tracker.me] + (trip.meetingPoint.map { [$0.coordinate] } ?? []),
+            minSpan: 0.012, animated: animated
+        )
     }
 
     /// Frames these points with room under them for the card.
-    private func frame(_ points: [CLLocationCoordinate2D]) {
+    private func frame(_ points: [CLLocationCoordinate2D], minSpan: Double = 0.003, animated: Bool = true) {
+        guard let region = framingRegion(points, minSpan: minSpan) else { return }
+        if animated {
+            withAnimation(DesignSystem.Motion.camera) { camera = .region(region) }
+        } else {
+            camera = .region(region)
+        }
+    }
+
+    /// These points with room around them and under them for the card, or nil when there are none.
+    private func framingRegion(_ points: [CLLocationCoordinate2D], minSpan: Double) -> MKCoordinateRegion? {
         let lats = points.map(\.latitude), lons = points.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return }
-        let spanLat = max((maxLat - minLat) * 2.4, 0.003)
-        let spanLon = max((maxLon - minLon) * 2.4, 0.003)
+        guard let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+        let spanLat = max((maxLat - minLat) * 2.4, minSpan)
+        let spanLon = max((maxLon - minLon) * 2.4, minSpan)
         let center = CLLocationCoordinate2D(latitude: (maxLat + minLat) / 2 - spanLat * 0.17, longitude: (maxLon + minLon) / 2)
-        withAnimation(DesignSystem.Motion.camera) {
-            camera = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon)))
+        return MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon))
+    }
+
+    /// Asks MapKit for a picture of the opening view. It finishes when the tiles for that view have been downloaded, which
+    /// is the nearest thing MapKit gives to "the first tiles are ready", and the live map then draws from the same tiles.
+    private func loadOpeningTiles(_ trip: Trip) {
+        let points = trip.locations.compactMap { tracker.positions[$0.id] ?? $0.coordinate } + [tracker.me]
+            + (trip.meetingPoint.map { [$0.coordinate] } ?? [])
+        guard let region = framingRegion(points, minSpan: 0.012) else {
+            tilesLoaded = true
+            return
+        }
+        let options = MKMapSnapshotter.Options()
+        options.region = region
+        options.size = CGSize(width: 402, height: 874)
+        options.scale = displayScale
+        let snapshotter = MKMapSnapshotter(options: options)
+        tileSnapshotter = snapshotter
+        snapshotter.start { _, _ in
+            Task { @MainActor in tilesLoaded = true }
         }
     }
 
@@ -436,7 +498,8 @@ extension MemberLocation {
 // MARK: - Pieces
 
 /// A person on the map, sized like ridecommand's rider marker: a small coloured disc with a thin white border. Whoever you
-/// are following is a touch larger with a soft halo and a pulse; everyone else steps back. The distance is not repeated here.
+/// are following is a touch larger with a soft halo and a stronger pulse; everyone else steps back. Anyone sharing live
+/// gives off a gentle pulse in the steel-blue live colour, and someone who is not live does not, even when followed. The distance is not repeated here.
 private struct Pin: View {
     let member: AvatarMember
     let isLive: Bool
@@ -445,22 +508,16 @@ private struct Pin: View {
     let isYou: Bool
 
     @Environment(\.theme) private var theme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulse = false
 
     private var disc: CGFloat { isSelected ? 34 : (isDimmed ? 24 : 30) }
 
+    /// Live, and either the one being followed or not stepped back behind someone who is.
+    private var pulses: Bool { isLive && (isSelected || !isDimmed) }
+
     var body: some View {
         ZStack {
-            if isSelected {
-                Circle()
-                    .stroke(theme.accent, lineWidth: 6)
-                    .frame(width: 34, height: 34)
-                    .scaleEffect(pulse ? 1.7 : 0.8)
-                    .opacity(pulse ? 0 : 0.8)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 1.5).repeatForever(autoreverses: false), value: pulse)
-                Circle().fill(theme.accent.opacity(0.22)).frame(width: 46, height: 46)
-            }
+            if pulses { PulseRing(lineWidth: isSelected ? 6 : 3, color: Palette.live.color) }
+            if isSelected { Circle().fill(Palette.live.color.opacity(0.22)).frame(width: 46, height: 46) }
             Circle().fill(.white).frame(width: disc + 4, height: disc + 4)
             MemberAvatar(member, diameter: disc)
                 .opacity(isLive || isSelected ? 1 : 0.75)
@@ -469,10 +526,30 @@ private struct Pin: View {
         .markerShadow(softened: isDimmed)
         .animation(DesignSystem.Motion.enter, value: isSelected)
         .animation(DesignSystem.Motion.enter, value: isDimmed)
-        .onAppear { pulse = !reduceMotion }
-        .onChange(of: reduceMotion) { _, reduce in pulse = !reduce }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(member.name), \(isLive ? "live" : "last seen")")
+    }
+}
+
+/// A ring that grows and fades again and again, to say someone is sharing right now. It starts when it appears, and
+/// does not move at all under Reduce Motion.
+private struct PulseRing: View {
+    let lineWidth: CGFloat
+    let color: Color
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+
+    var body: some View {
+        Circle()
+            .stroke(color, lineWidth: lineWidth)
+            .frame(width: 34, height: 34)
+            .scaleEffect(pulse ? 1.7 : 0.8)
+            .opacity(pulse ? 0 : 0.8)
+            .animation(reduceMotion ? nil : .easeOut(duration: 1.5).repeatForever(autoreverses: false), value: pulse)
+            .onAppear { pulse = !reduceMotion }
+            .onChange(of: reduceMotion) { _, reduce in pulse = !reduce }
+            .accessibilityHidden(true)
     }
 }
 

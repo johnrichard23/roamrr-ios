@@ -16,6 +16,9 @@ final class DocumentLock {
     private(set) var state = State.locked
     /// Bumped every time the lock closes, so an authentication that was already under way cannot open it afterwards.
     private var generation = 0
+    /// The prompt that is on screen, kept so leaving the screen can close it. Without this the Face ID sheet stays
+    /// up over whatever screen comes next.
+    private var context: LAContext?
 
     var isUnlocked: Bool { state == .unlocked }
 
@@ -28,7 +31,9 @@ final class DocumentLock {
             return
         }
         state = .unlocking
+        self.context = context
         let attempt = generation
+        defer { if attempt == generation { self.context = nil } }
         do {
             let success = try await context.evaluatePolicy(
                 .deviceOwnerAuthentication, localizedReason: "Open your passport and insurance documents"
@@ -46,6 +51,9 @@ final class DocumentLock {
 
     func lock() {
         generation += 1
+        // Closes the Face ID or passcode prompt if it is still showing; its pending call then ends with an error.
+        context?.invalidate()
+        context = nil
         if state == .unlocked || state == .unlocking { state = .locked }
     }
 }

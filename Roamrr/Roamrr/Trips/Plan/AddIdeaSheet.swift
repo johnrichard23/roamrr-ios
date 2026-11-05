@@ -27,8 +27,8 @@ struct AddIdeaSheet: View {
     @State private var picked = false
     @State private var pickedName = ""
     @State private var tripArea: CLLocationCoordinate2D?
-    @State private var photo: Data?
-    @State private var pickerItem: PhotosPickerItem?
+    @State private var photos: [Data]
+    @State private var pickerItems: [PhotosPickerItem] = []
     @FocusState private var focused: Bool
 
     init(trip: Trip, editing: PlanItem?) {
@@ -44,12 +44,16 @@ struct AddIdeaSheet: View {
         _coordinate = State(initialValue: editing?.coordinate)
         _picked = State(initialValue: editing?.coordinate != nil)
         _pickedName = State(initialValue: editing?.placeName ?? "")
-        _photo = State(initialValue: editing?.photo)
+        _photos = State(initialValue: editing?.photos ?? [])
     }
 
     private var parsedURL: URL? { PlanLink.parse(linkText) }
     private var linkProblem: Bool { !linkText.trimmingCharacters(in: .whitespaces).isEmpty && parsedURL == nil }
-    private var photosOnTrip: Int { trip.plan.filter { $0.photo != nil && $0.id != editing?.id }.count }
+    /// Photos on the trip's other ideas, which count towards the trip's total.
+    private var photosOnTrip: Int { trip.plan.filter { $0.id != editing?.id }.reduce(0) { $0 + $1.photos.count } }
+
+    /// How many more photos this idea can take: three at most, and never past the trip's total.
+    private var photoRoom: Int { max(0, min(PlanItem.maxPhotos - photos.count, Self.photoLimit - photosOnTrip - photos.count)) }
     private var canSave: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty && !linkProblem }
 
     var body: some View {
@@ -106,11 +110,13 @@ struct AddIdeaSheet: View {
                     .background(theme.background)
             }
         }
-        .onChange(of: pickerItem) { _, item in
-            guard let item else { return }
+        .onChange(of: pickerItems) { _, items in
+            guard !items.isEmpty else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self) { photo = data.compressedPhoto }
-                pickerItem = nil
+                for item in items where photoRoom > 0 {
+                    if let data = try? await item.loadTransferable(type: Data.self)?.compressedPhoto { photos.append(data) }
+                }
+                pickerItems = []
             }
         }
     }
@@ -247,30 +253,71 @@ struct AddIdeaSheet: View {
     private var photoField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
-                Text("Photo").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
-                Text("optional").textRole(.subheadline).foregroundStyle(theme.labelTertiary)
+                Text("Photos").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
+                Text("up to \(PlanItem.maxPhotos) · the first is the cover").textRole(.subheadline).foregroundStyle(theme.labelTertiary)
             }
-            if let photo, let image = UIImage(data: photo) {
-                HStack {
-                    Image(uiImage: image).resizable().scaledToFill().frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    Button("Remove photo", role: .destructive) { self.photo = nil }
-                        .textRole(.subheadline, emphasized: true)
-                    Spacer()
+            if !photos.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: theme.spacing.xs) {
+                        ForEach(Array(photos.enumerated()), id: \.offset) { index, data in thumbnail(index, data) }
+                        if photoRoom > 0 { addTile }
+                    }
+                    .padding(.vertical, 2)
                 }
-            } else if photosOnTrip >= Self.photoLimit {
-                Text("This trip has \(Self.photoLimit) photos already. You can still save the idea without one.")
-                    .textRole(.subheadline).foregroundStyle(theme.labelSecondary)
-            } else {
-                PhotosPicker(selection: $pickerItem, matching: .images) {
-                    Label("Add a photo", systemImage: "camera")
+                .scrollIndicators(.hidden)
+            } else if photoRoom > 0 {
+                PhotosPicker(selection: $pickerItems, maxSelectionCount: photoRoom, matching: .images) {
+                    Label("Add photos", systemImage: "camera")
                         .font(.system(.body)).foregroundStyle(theme.labelPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, theme.spacing.md).frame(minHeight: 52)
                         .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: theme.radius.field, style: .continuous))
                 }
             }
+            if photoRoom == 0, photos.count < PlanItem.maxPhotos {
+                Text("This trip has \(Self.photoLimit) photos already. You can still save the idea without one.")
+                    .textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+            }
         }
+    }
+
+    /// One chosen photo: remove it, or make it the cover, from the corner button and a long press.
+    private func thumbnail(_ index: Int, _ data: Data) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if let image = UIImage(data: data) {
+                Image(uiImage: image).resizable().scaledToFill().frame(width: 96, height: 96)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(alignment: .bottomLeading) {
+                        if index == 0 {
+                            Text("Cover").textRole(.footnote, emphasized: true).foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(.black.opacity(0.55), in: Capsule()).padding(6)
+                        }
+                    }
+                    .accessibilityLabel(index == 0 ? "Cover photo" : "Photo \(index + 1)")
+            }
+            Button { photos.remove(at: index) } label: {
+                Image(systemName: "xmark.circle.fill").font(.system(size: 22)).symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, .black.opacity(0.6))
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .offset(x: 10, y: -10)
+            .accessibilityLabel("Remove photo \(index + 1)")
+        }
+        .contextMenu {
+            if index > 0 { Button("Make cover", systemImage: "star") { photos.insert(photos.remove(at: index), at: 0) } }
+            Button("Remove", systemImage: "trash", role: .destructive) { photos.remove(at: index) }
+        }
+    }
+
+    private var addTile: some View {
+        PhotosPicker(selection: $pickerItems, maxSelectionCount: photoRoom, matching: .images) {
+            Image(systemName: "plus").font(.system(.title3, weight: .semibold)).foregroundStyle(theme.labelPrimary)
+                .frame(width: 96, height: 96)
+                .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .accessibilityLabel("Add photos")
     }
 
     // MARK: Save
@@ -283,16 +330,16 @@ struct AddIdeaSheet: View {
         let cost = Decimal(string: costText.trimmingCharacters(in: .whitespaces)).flatMap { $0 > 0 ? $0 : nil }
         if var item = editing {
             item.title = cleanTitle; item.category = category; item.link = link; item.note = note
-            item.cost = cost; item.placeName = placeName; item.photo = photo
+            item.cost = cost; item.placeName = placeName; item.photos = photos
             item.latitude = coordinate?.latitude; item.longitude = coordinate?.longitude
-            if photo != nil { item.tile = nil }
+            if !photos.isEmpty { item.tile = nil }
             store.updateIdea(item, in: trip.id)
         } else {
             store.addIdea(
                 PlanItem(
                     id: UUID(), title: cleanTitle, category: category, placeName: placeName,
                     latitude: coordinate?.latitude, longitude: coordinate?.longitude, link: link, note: note,
-                    photo: photo, cost: cost, addedBy: store.me, reactions: [store.me.id: .want]
+                    photos: photos, cost: cost, addedBy: store.me, reactions: [store.me.id: .want]
                 ),
                 in: trip.id
             )

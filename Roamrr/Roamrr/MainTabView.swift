@@ -26,6 +26,7 @@ struct MainTabView: View {
                 TripsHomeView(openTrip: { path.append($0) })
                     .toolbar(.hidden, for: .navigationBar)
                     .navigationDestination(for: Trip.ID.self) { TripHomeView(tripID: $0) }
+                    .navigationDestination(for: PastTripsRoute.self) { _ in PastTripsView() }
             }
             .tabItem { Label("Trips", systemImage: "suitcase") }
             SettingsHomeView(
@@ -36,8 +37,8 @@ struct MainTabView: View {
                 .tabItem { Label("Settings", systemImage: "slider.horizontal.3") }
         }
         .environment(store)
-        .environment(\.popToTrips) { path = NavigationPath() }
         .environment(\.signedInMember, store.profile)
+        .environment(\.popToTrips) { path = NavigationPath() }
         .onAppear { store.startMonitoring() }
     }
 }

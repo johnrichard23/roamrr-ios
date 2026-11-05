@@ -175,7 +175,7 @@ private struct ExpenseRow: View {
             Spacer(minLength: theme.spacing.xs)
             VStack(alignment: .trailing, spacing: 0) {
                 Text(Money.peso(expense.amount)).rowAmountStyle().foregroundStyle(theme.labelPrimary)
-                Text("you \(Money.peso(share))").textRole(.subheadline).monospacedDigit().foregroundStyle(theme.labelSecondary)
+                Text("You \(Money.peso(share))").textRole(.subheadline).monospacedDigit().foregroundStyle(theme.labelSecondary)
             }
         }
         .padding(.horizontal, theme.spacing.md)

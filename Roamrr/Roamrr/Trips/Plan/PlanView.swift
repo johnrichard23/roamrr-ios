@@ -196,7 +196,7 @@ struct IdeaArt: View {
     let item: PlanItem
 
     var body: some View {
-        if let data = item.photo, let image = UIImage(data: data) {
+        if let data = item.photos.first, let image = UIImage(data: data) {
             Image(uiImage: image).resizable().scaledToFill()
         } else if let tile = item.tile {
             LinearGradient(colors: Self.colors(tile), startPoint: .top, endPoint: .bottom)
@@ -214,7 +214,7 @@ struct IdeaArt: View {
         }
     }
 
-    var hasArt: Bool { item.photo != nil || item.tile != nil }
+    var hasArt: Bool { !item.photos.isEmpty || item.tile != nil }
 }
 
 /// One idea in the list: picture, category, title, place, link, the four reactions, and who added it.

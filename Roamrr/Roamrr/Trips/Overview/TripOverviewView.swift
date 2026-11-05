@@ -247,7 +247,7 @@ struct TripOverviewView: View {
     private func tiles(_ trip: Trip) -> some View {
         HStack(alignment: .top, spacing: theme.spacing.xs) {
             if !trip.isPast(on: store.today) {
-                NavigationLink(value: TripSection.map) { MapTile(trip: trip) }.buttonStyle(MapTilePressStyle())
+                NavigationLink(value: TripSection.map) { MapTile(trip: trip) }.buttonStyle(CardPressStyle())
             }
             VStack(spacing: theme.spacing.xs) {
                 if !trip.isPast(on: store.today) {
@@ -281,7 +281,7 @@ struct TripOverviewView: View {
 
     private func spentTile(_ trip: Trip) -> some View {
         guard let spent = trip.spent else { return tile("list.bullet.rectangle", "Spent", "—", "Add the first one") }
-        let share = trip.yourShare(me: store.me).map { "your share \(Money.peso($0))" } ?? ""
+        let share = trip.yourShare(me: store.me).map { "Your share \(Money.peso($0))" } ?? ""
         return tile("list.bullet.rectangle", "Spent", Money.compact(spent), share)
     }
 

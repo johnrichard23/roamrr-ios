@@ -144,15 +144,17 @@ private struct TilePin: View {
     var body: some View {
         ZStack {
             Circle().fill(.white).frame(width: 34, height: 34)
-            Circle().fill(location.member.color).frame(width: 30, height: 30)
-            MemberAvatar(location.member, diameter: 24)
+            Circle().fill(location.member.color).frame(width: 31, height: 31)
+            MemberAvatar(location.member, diameter: 27)
             if isLive {
-                Circle().fill(Palette.live.color).frame(width: 10, height: 10)
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                Circle().fill(Palette.live.color).frame(width: 9, height: 9)
+                    .overlay(Circle().stroke(.white, lineWidth: 1.5))
                     .offset(x: 12, y: 12)
             }
         }
-        .opacity(isLive ? 1 : 0.6)
+        // Someone not live keeps a clear photo and loses some colour, so "last seen" does not wash the face out.
+        .saturation(isLive ? 1 : 0.35)
+        .opacity(isLive ? 1 : 0.9)
         .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
     }
 
@@ -188,7 +190,7 @@ private struct PlaceFlag: View {
 // MARK: Press
 
 /// Press feedback for the tile: it dips a little, the way buttons and cards do.
-struct MapTilePressStyle: ButtonStyle {
+struct CardPressStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {

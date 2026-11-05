@@ -6,3 +6,6 @@ build/
 .swiftpm/
 *.xcconfig
 !*.example.xcconfig
+
+# Sample photos used only to check the mock screens
+Roamrr/Roamrr/Mock/Photos/

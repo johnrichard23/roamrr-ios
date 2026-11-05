@@ -10,12 +10,16 @@ final class TripsStore {
     /// Passport, ID and insurance cards. They live on this phone only and are not part of any trip.
     private(set) var myDocuments: [PersonalDocument]
     let today: Date
-    let me: AvatarMember
+    /// What the signed-in person looks like. It compares every field, so changing a name or photo reaches every screen.
+    private(set) var profile: MemberAppearance
     private let created = Date()
     private(set) var networkDown = false
     private(set) var forcedOffline = false
     private let monitor = NWPathMonitor()
     private var monitoring = false
+
+    /// The person using the app.
+    var me: AvatarMember { profile.member }
 
     /// No usable connection, or the tester has switched it off.
     var isOffline: Bool { networkDown || forcedOffline }
@@ -27,7 +31,12 @@ final class TripsStore {
         self.trips = trips
         self.myDocuments = myDocuments
         self.today = today
-        self.me = me
+        profile = MemberAppearance(me)
+    }
+
+    /// Saves a new name, color or photo for the person using the app. They stay the same member everywhere.
+    func updateProfile(name: String, colorIndex: Int, photo: Data?) {
+        profile = MemberAppearance(me.updating(name: name, colorIndex: colorIndex, photo: photo))
     }
 
     /// Trips that are happening or still to come, soonest first.

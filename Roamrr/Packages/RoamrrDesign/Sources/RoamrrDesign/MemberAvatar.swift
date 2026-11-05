@@ -2,8 +2,10 @@ import DesignSystem
 import SwiftUI
 
 /// A person shown as an avatar: a name, the member color they keep everywhere, and an optional photo.
+/// Two members are the same person when their `id` matches, even after the name, color or photo changes.
 public struct AvatarMember: Hashable, Sendable, Identifiable {
-    public var id: String { name }
+    /// Never changes, so a person can rename themselves or change their photo and stay the same member.
+    public let id: String
     public let name: String
     /// Index into `Palette.avatars`.
     public let colorIndex: Int
@@ -11,7 +13,9 @@ public struct AvatarMember: Hashable, Sendable, Identifiable {
     /// A friend added without the app: drawn with a dashed ring.
     public let isPlaceholder: Bool
 
-    public init(name: String, colorIndex: Int, photo: Data? = nil, isPlaceholder: Bool = false) {
+    /// `id` defaults to the name, which is enough until people are matched by their account.
+    public init(id: String? = nil, name: String, colorIndex: Int, photo: Data? = nil, isPlaceholder: Bool = false) {
+        self.id = id ?? name
         self.name = name
         self.colorIndex = colorIndex
         self.photo = photo
@@ -19,18 +23,70 @@ public struct AvatarMember: Hashable, Sendable, Identifiable {
     }
 
     public var initial: String { name.first.map { String($0).uppercased() } ?? "" }
+
+    /// The same person with a new name, color or photo.
+    public func updating(name: String, colorIndex: Int, photo: Data?) -> AvatarMember {
+        AvatarMember(id: id, name: name, colorIndex: colorIndex, photo: photo, isPlaceholder: isPlaceholder)
+    }
+
+    public static func == (lhs: AvatarMember, rhs: AvatarMember) -> Bool { lhs.id == rhs.id }
+
+    public func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+/// Everything an avatar draws. Unlike `AvatarMember`, it compares every field, so SwiftUI redraws an avatar when a
+/// person changes their name, color or photo.
+public struct MemberAppearance: Equatable, Sendable {
+    public let id: String
+    public let name: String
+    public let colorIndex: Int
+    public let photo: Data?
+    public let isPlaceholder: Bool
+
+    public init(_ member: AvatarMember) {
+        id = member.id
+        name = member.name
+        colorIndex = member.colorIndex
+        photo = member.photo
+        isPlaceholder = member.isPlaceholder
+    }
+
+    var initial: String { name.first.map { String($0).uppercased() } ?? "" }
+
+    /// The same person as an `AvatarMember`.
+    public var member: AvatarMember {
+        AvatarMember(id: id, name: name, colorIndex: colorIndex, photo: photo, isPlaceholder: isPlaceholder)
+    }
+}
+
+private struct SignedInMemberKey: EnvironmentKey {
+    static let defaultValue: MemberAppearance? = nil
+}
+
+public extension EnvironmentValues {
+    /// The person using the app. Their avatar shows their latest name, photo and color wherever an older copy is stored.
+    var signedInMember: MemberAppearance? {
+        get { self[SignedInMemberKey.self] }
+        set { self[SignedInMemberKey.self] = newValue }
+    }
 }
 
 /// The person's photo when there is one, otherwise their initial on their member color.
 public struct MemberAvatar: View {
-    private let member: AvatarMember
+    private let stored: MemberAppearance
     private let diameter: CGFloat
     private let ring: Color?
 
     @ScaledMetric(relativeTo: .body) private var textScale: CGFloat = 1
+    @Environment(\.signedInMember) private var signedIn
+
+    private var member: MemberAppearance {
+        if let signedIn, signedIn.id == stored.id { return signedIn }
+        return stored
+    }
 
     public init(_ member: AvatarMember, diameter: CGFloat = 40, ring: Color? = nil) {
-        self.member = member
+        stored = MemberAppearance(member)
         self.diameter = diameter
         self.ring = ring
     }

@@ -11,18 +11,8 @@ struct TripHeroCard: View {
 
     var body: some View {
         TripCoverCard(trip: trip, subtitle: "\(trip.dates) · \(trip.peopleCount) people") {
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    statusChip
-                    Spacer()
-                    if trip.newCount > 0 { newChip }
-                }
-                VStack(alignment: .leading, spacing: theme.spacing.xs) {
-                    statusChip
-                    if trip.newCount > 0 { newChip }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            // The "N new" chip is not shown until there is an activity list for it to open.
+            HStack { statusChip; Spacer() }
         } bottom: {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom) {
@@ -54,20 +44,11 @@ struct TripHeroCard: View {
         .background(Color.Roamrr.pill, in: Capsule())
     }
 
-    private var newChip: some View {
-        Text("\(trip.newCount) new")
-            .textRole(.footnote, emphasized: true)
-            .foregroundStyle(Palette.onInk.color)
-            .padding(.horizontal, theme.spacing.sm)
-            .padding(.vertical, theme.spacing.xs)
-            .background(Color.Roamrr.accentFill, in: Capsule())
-    }
-
     @ViewBuilder
     private func owed(_ alignment: HorizontalAlignment) -> some View {
         if trip.isPlanning {
             VStack(alignment: alignment, spacing: 0) {
-                Text("ideas so far")
+                Text("Ideas so far")
                     .textRole(.footnote)
                     .foregroundStyle(Color.Roamrr.onPanelSecondary)
                 Text("\(trip.plan.count)")
@@ -76,7 +57,7 @@ struct TripHeroCard: View {
             }
         } else if let balance = trip.balance, balance != 0 {
             VStack(alignment: alignment, spacing: 0) {
-                Text(balance > 0 ? "you're owed" : "you owe")
+                Text(balance > 0 ? "You're owed" : "You owe")
                     .textRole(.footnote)
                     .foregroundStyle(Color.Roamrr.onPanelSecondary)
                 Text(Money.peso(abs(balance)))

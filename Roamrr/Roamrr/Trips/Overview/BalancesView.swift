@@ -65,7 +65,7 @@ struct BalancesView: View {
             } else {
                 Text(Money.signed(balance)).heroAmountStyle().foregroundStyle(Color.Roamrr.onPanel)
                     .minimumScaleFactor(0.6)
-                Text(balance > 0 ? "owed to you" : "you owe")
+                Text(balance > 0 ? "Owed to you" : "You owe")
                     .textRole(.body).foregroundStyle(Color.Roamrr.onPanelSecondary)
             }
         }
@@ -166,7 +166,7 @@ private struct StandingRow: View {
 
     private var caption: String {
         if standing.amount == 0 { return "Settled" }
-        if standing.amount > 0 { return standing.member == me ? "owed to you" : "is owed" }
-        return standing.member == me ? "you owe" : "owes"
+        if standing.amount > 0 { return standing.member == me ? "Owed to you" : "Is owed" }
+        return standing.member == me ? "You owe" : "Owes"
     }
 }

@@ -15,6 +15,8 @@ extension EnvironmentValues {
 }
 
 struct MainTabView: View {
+    var onSignOut: () -> Void = {}
+
     @State private var store = TripsStore()
     @State private var path = NavigationPath()
 
@@ -24,20 +26,20 @@ struct MainTabView: View {
                 TripsHomeView(openTrip: { path.append($0) })
                     .toolbar(.hidden, for: .navigationBar)
                     .navigationDestination(for: Trip.ID.self) { TripHomeView(tripID: $0) }
+                    .navigationDestination(for: PastTripsRoute.self) { _ in PastTripsView() }
             }
             .tabItem { Label("Trips", systemImage: "suitcase") }
-            SettingsPlaceholder()
+            SettingsHomeView(
+                me: store.profile,
+                onSaveProfile: { store.updateProfile(name: $0, colorIndex: $1, photo: $2) },
+                onSignOut: onSignOut
+            )
                 .tabItem { Label("Settings", systemImage: "slider.horizontal.3") }
         }
         .environment(store)
+        .environment(\.signedInMember, store.profile)
         .environment(\.popToTrips) { path = NavigationPath() }
         .onAppear { store.startMonitoring() }
-    }
-}
-
-private struct SettingsPlaceholder: View {
-    var body: some View {
-        ContentUnavailableView("Settings", systemImage: "slider.horizontal.3", description: Text("Coming after Trips."))
     }
 }
 

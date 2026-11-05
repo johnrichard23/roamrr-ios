@@ -100,7 +100,7 @@ struct CreateTripSheet: View {
                     .accessibilityLabel("\(style.rawValue.capitalized) illustration")
                     .accessibilityAddTraits(model.photo == nil && model.cover == style ? .isSelected : [])
                 }
-                Text("or pick an illustration").textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+                Text("Or pick an illustration").textRole(.subheadline).foregroundStyle(theme.labelSecondary)
             }
         }
     }

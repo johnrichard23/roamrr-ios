@@ -35,14 +35,27 @@ struct TripsHomeView: View {
 
     private var toolbar: some View {
         HStack {
-            MemberAvatar(store.me, diameter: 44)
             Spacer()
-            Button("Join") { joinSeed = JoinSeed() }
-                .buttonStyle(.ds(.neutral, size: .regular, expandsWidth: false))
-            Button("Create trip", systemImage: "plus") { showCreate = true }
-                .buttonStyle(.dsIcon(.filled))
+            addTrip
         }
         .padding(.horizontal, theme.spacing.lg)
+    }
+
+    /// One control with a word on it, not a bare "+" next to a bare "Join". Its menu names both ways in.
+    private var addTrip: some View {
+        Menu {
+            Button("Create trip", systemImage: "suitcase") { showCreate = true }
+            Button("Join trip with a code", systemImage: "person.badge.plus") { joinSeed = JoinSeed() }
+        } label: {
+            Label("Add trip", systemImage: "plus")
+                .textRole(.subheadline, emphasized: true)
+                .foregroundStyle(Color.Roamrr.onInk)
+                .padding(.horizontal, theme.spacing.md)
+                .frame(minHeight: 44)
+                .background(Color.Roamrr.ink, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .accessibilityHint("Create a new trip or join one with a code")
     }
 
     private var greeting: some View {
@@ -50,7 +63,8 @@ struct TripsHomeView: View {
             Text("Hi \(store.me.name.split(separator: " ").first.map(String.init) ?? ""),")
                 .textRole(.body)
                 .foregroundStyle(theme.labelSecondary)
-            Text(store.active.first.map { $0.headline(on: store.today) } ?? "Where to first?")
+            // True for the whole list below, and for any trip you swipe to. Which day you are on is on the card.
+            Text(store.active.isEmpty ? "Where to first?" : "Your trips")
                 .displayTitleStyle()
                 .foregroundStyle(theme.labelPrimary)
         }
@@ -118,8 +132,8 @@ struct TripsHomeView: View {
 
     private var emptyActions: some View {
         VStack(spacing: theme.spacing.xs) {
-            Button("Create a trip") { showCreate = true }.buttonStyle(.ds(.ink))
-            Button("Join with a code") { joinSeed = JoinSeed() }.buttonStyle(.ds(.neutral))
+            Button("Create trip") { showCreate = true }.buttonStyle(.ds(.ink))
+            Button("Join trip with a code") { joinSeed = JoinSeed() }.buttonStyle(.ds(.neutral))
         }
         .padding(.horizontal, theme.spacing.lg)
     }
@@ -131,9 +145,11 @@ struct TripsHomeView: View {
             HStack {
                 Text("Past trips").textRole(.title3, emphasized: true).foregroundStyle(theme.labelPrimary)
                 Spacer()
-                Button("See all") {}
-                    .textRole(.subheadline, emphasized: true)
-                    .foregroundStyle(theme.accent)
+                // A normal push: the list sits under Trips like any other screen, so the system transition is the right one.
+                NavigationLink(value: PastTripsRoute()) {
+                    Text("See all").textRole(.subheadline, emphasized: true).foregroundStyle(theme.accent)
+                        .frame(minHeight: 44)
+                }
             }
             .padding(.horizontal, theme.spacing.lg)
             ScrollView(.horizontal) {

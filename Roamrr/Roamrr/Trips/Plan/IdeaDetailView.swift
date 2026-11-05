@@ -11,6 +11,8 @@ struct IdeaDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(TripsStore.self) private var store
     @State private var showDay = false
+    @State private var showPhotos = false
+    @Namespace private var photoZoom
     @State private var showEdit = false
     @State private var showExpense = false
     @State private var confirmDelete = false
@@ -28,7 +30,9 @@ struct IdeaDetailView: View {
         let canChange = item.addedBy == store.me || trip.owner == nil || trip.owner == store.me
         return ScrollView {
             VStack(alignment: .leading, spacing: theme.spacing.md) {
-                if IdeaArt(item: item).hasArt {
+                if !item.photos.isEmpty {
+                    IdeaPhotoStack(photos: item.photos, zoomNamespace: photoZoom) { showPhotos = true }
+                } else if IdeaArt(item: item).hasArt {
                     IdeaArt(item: item)
                         .frame(maxWidth: .infinity).frame(height: 170)
                         .clipShape(RoundedRectangle(cornerRadius: theme.radius.card, style: .continuous))
@@ -79,6 +83,7 @@ struct IdeaDetailView: View {
             }
         }
         .sheet(isPresented: $showDay) { AddToDaySheet(trip: trip, item: item) }
+        .fullScreenCover(isPresented: $showPhotos) { IdeaPhotoGallery(title: item.title, photos: item.photos, zoomNamespace: photoZoom) }
         .sheet(isPresented: $showEdit) { AddIdeaSheet(trip: trip, editing: item) }
         .sheet(isPresented: $showExpense) { AddExpenseSheet(trip: trip, me: store.me, today: store.today, from: item) }
         .confirmationDialog("Delete this idea?", isPresented: $confirmDelete, titleVisibility: .visible) {

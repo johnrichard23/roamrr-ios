@@ -520,7 +520,8 @@ private struct Pin: View {
             if isSelected { Circle().fill(Palette.live.color.opacity(0.22)).frame(width: 46, height: 46) }
             Circle().fill(.white).frame(width: disc + 4, height: disc + 4)
             MemberAvatar(member, diameter: disc)
-                .opacity(isLive || isSelected ? 1 : 0.75)
+                .saturation(isLive || isSelected ? 1 : 0.35)
+                .opacity(isLive || isSelected ? 1 : 0.9)
         }
         .opacity(isDimmed ? 0.6 : 1)
         .markerShadow(softened: isDimmed)
@@ -799,7 +800,7 @@ private struct CompassArrow: View {
         HStack(spacing: 8) {
             VStack(alignment: .trailing, spacing: 0) {
                 Text(direction).textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
-                Text("north is up").textRole(.footnote).foregroundStyle(theme.labelSecondary)
+                Text("North is up").textRole(.footnote).foregroundStyle(theme.labelSecondary)
             }
             Image(systemName: "location.north.fill")
                 .font(.system(size: 22, weight: .bold)).foregroundStyle(Color.Roamrr.onPanel)

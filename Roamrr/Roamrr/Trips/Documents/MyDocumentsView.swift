@@ -32,7 +32,9 @@ struct MyDocumentsView: View {
             case .inactive where lock.state != .unlocking: lock.lock()
             case .background: lock.lock()
             // Coming back, for example from Settings after turning on a passcode, asks again.
-            case .active: Task { await lock.unlock() }
+            // Only for that case: after a cancelled prompt the app also becomes active, and asking again would loop.
+            case .active where lock.state == .unavailable: Task { await lock.unlock() }
+            case .active: break
             @unknown default: break
             }
         }

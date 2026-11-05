@@ -3,11 +3,11 @@ import RoamrrDesign
 
 /// Sample people and trips, the same ones the design drafts use.
 enum MockData {
-    static let you = AvatarMember(name: "Alex Rivera", colorIndex: 0)
-    static let bea = AvatarMember(name: "Bea Santos", colorIndex: 1)
-    static let ana = AvatarMember(name: "Ana Cruz", colorIndex: 5)
-    static let jo = AvatarMember(name: "Jo Reyes", colorIndex: 3)
-    static let migs = AvatarMember(name: "Migs Lim", colorIndex: 2)
+    static let you = AvatarMember(name: "Alex Rivera", colorIndex: 0, photo: MockPhotos.portrait("alex"))
+    static let bea = AvatarMember(name: "Bea Santos", colorIndex: 1, photo: MockPhotos.portrait("bea"))
+    static let ana = AvatarMember(name: "Ana Cruz", colorIndex: 5, photo: MockPhotos.portrait("ana"))
+    static let jo = AvatarMember(name: "Jo Reyes", colorIndex: 3, photo: MockPhotos.portrait("jo"))
+    static let migs = AvatarMember(name: "Migs Lim", colorIndex: 2, photo: MockPhotos.portrait("migs"))
 
     /// 4 Nov 2026, 9:41 AM: day 2 of the Siargao trip.
     static let today = date(2026, 11, 4)
@@ -41,6 +41,7 @@ enum MockData {
             note: "Best light at 5:45. Bring a rash guard.",
             reactions: [you.id: .must, bea.id: .must, ana.id: .want, jo.id: .want]
         )
+        sunrise.photos = MockPhotos.make(.sunrise, count: 3)
         sunrise.day = date(2026, 11, 4); sunrise.minutes = 6 * 60; sunrise.order = 1
         var lunch = idea(
             "Lunch at Kermit", .food, place: "General Luna", lat: 9.7900, lon: 126.1580, by: jo, tile: .food,
@@ -52,6 +53,7 @@ enum MockData {
             cost: 1200, note: "Boat and lunch included.",
             reactions: [ana.id: .want, bea.id: .want, jo.id: .maybe, migs.id: .skip]
         )
+        lagoon.photos = MockPhotos.make(.lagoon, count: 2)
         lagoon.day = date(2026, 11, 5); lagoon.minutes = 8 * 60; lagoon.order = 3
         lagoon.audience = .interested; lagoon.going = [ana.id, bea.id, migs.id]
         let rocks = idea(
@@ -105,8 +107,10 @@ enum MockData {
         func idea(_ title: String, _ category: PlanCategory, place: String, tile: PlanTile, by: AvatarMember, _ reactions: [String: PlanReaction]) -> PlanItem {
             PlanItem(id: UUID(), title: title, category: category, placeName: place, tile: tile, addedBy: by, reactions: reactions)
         }
+        var kiltepan = idea("Sunrise at Kiltepan Peak", .activity, place: "Kiltepan", tile: .sunrise, by: bea, [you.id: .must, bea.id: .must, ana.id: .must, migs.id: .want])
+        kiltepan.photos = MockPhotos.make(.sunrise, count: 3)
         trip.plan = [
-            idea("Sunrise at Kiltepan Peak", .activity, place: "Kiltepan", tile: .sunrise, by: bea, [you.id: .must, bea.id: .must, ana.id: .must, migs.id: .want]),
+            kiltepan,
             idea("Lemon pie at Yoghurt House", .food, place: "Sagada town", tile: .food, by: ana, [you.id: .want, bea.id: .want, ana.id: .want, migs.id: .want]),
             idea("Sumaguing Cave", .sights, place: "Sumaguing", tile: .rocks, by: migs, [you.id: .must, migs.id: .must, bea.id: .want]),
             idea("Echo Valley hanging coffins", .sights, place: "Echo Valley", tile: .lagoon, by: ana, [ana.id: .maybe]),

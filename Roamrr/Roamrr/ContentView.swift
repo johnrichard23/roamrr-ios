@@ -10,7 +10,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if isSignedIn {
-                MainTabView()
+                MainTabView(onSignOut: { isSignedIn = false })
             } else {
                 WelcomeView(
                     onApple: { isSignedIn = true },

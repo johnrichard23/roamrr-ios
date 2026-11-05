@@ -89,7 +89,8 @@ struct PlanItem: Identifiable, Hashable {
     var longitude: Double?
     var link: PlanLink?
     var note: String = ""
-    var photo: Data?
+    /// Up to `maxPhotos`, resized small. The first is the cover.
+    var photos: [Data] = []
     var tile: PlanTile?
     /// Estimated cost per person.
     var cost: Decimal?
@@ -104,6 +105,12 @@ struct PlanItem: Identifiable, Hashable {
     /// For "only those who want to": who is in, by `AvatarMember.id`.
     var going: Set<String> = []
     var isPending = false
+
+    /// How many photos one idea can carry, so the group sees a place from a few angles without the trip's photo total running away.
+    static let maxPhotos = 3
+
+    /// The cover: the first photo.
+    var photo: Data? { photos.first }
 
     var coordinate: CLLocationCoordinate2D? {
         guard let latitude, let longitude else { return nil }

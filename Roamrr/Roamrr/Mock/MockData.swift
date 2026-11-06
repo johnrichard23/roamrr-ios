@@ -119,6 +119,46 @@ enum MockData {
         return trip
     }
 
+    /// A solo trip on the same days as Siargao, so the prototype has one to open. Day 2 of 7.
+    private static func siquijor() -> Trip {
+        var trip = Trip(
+            id: UUID(), title: "Siquijor on my own", destination: "Siquijor",
+            start: date(2026, 11, 3).addingTimeInterval(60), end: date(2026, 11, 9), cover: .sea, coverPhoto: nil,
+            members: [], balance: nil, newCount: 0, code: "Q2SJ-7MNA", place: "San Juan, Siquijor"
+        )
+        trip.solo = true
+        trip.dailyBudget = 2000
+        trip.expenses = [
+            expense("Breakfast at the convent café", .food, 180, by: you, day: 4),
+            expense("Scooter rental", .transport, 500, by: you, day: 4),
+            expense("Cambugahay Falls entrance", .activity, 80, by: you, day: 4),
+            expense("Coco Grove pension, 6 nights", .stay, 8400, by: you, day: 3),
+            expense("Dinner at Baha Bar", .food, 650, by: you, day: 3),
+            expense("Tricycle from the port", .transport, 300, by: you, day: 3),
+        ]
+        func item(_ title: String, _ category: PlanCategory, place: String, tile: PlanTile, day: Int, at minutes: Int, order: Int) -> PlanItem {
+            var item = PlanItem(id: UUID(), title: title, category: category, placeName: place, tile: tile, addedBy: you, reactions: [:])
+            item.day = date(2026, 11, day); item.minutes = minutes; item.order = order
+            return item
+        }
+        trip.plan = [
+            item("Ferry from Dumaguete", .activity, place: "Siquijor port", tile: .lagoon, day: 3, at: 10 * 60, order: 1),
+            item("Sunset at Paliton Beach", .sights, place: "San Juan", tile: .sunrise, day: 3, at: 17 * 60 + 30, order: 2),
+            item("Lazi Church and Convent", .sights, place: "Lazi", tile: .rocks, day: 4, at: 7 * 60 + 30, order: 3),
+            item("Cambugahay Falls", .activity, place: "Lazi", tile: .lagoon, day: 4, at: 9 * 60, order: 4),
+            item("Lunch at Baha Bar", .food, place: "San Juan", tile: .food, day: 4, at: 12 * 60 + 30, order: 5),
+            item("Salagdoong Beach", .activity, place: "Maria", tile: .sunrise, day: 5, at: 10 * 60, order: 6),
+        ]
+        trip.journal = [
+            JournalEntry(
+                id: UUID(), day: date(2026, 11, 3),
+                text: "Ferry from Dumaguete was calm. Rented nothing yet, just walked to Paliton for sunset and stayed until the stars came out.",
+                mood: .good, photos: MockPhotos.make(.sunrise, count: 1)
+            ),
+        ]
+        return trip
+    }
+
     static let trips: [Trip] = [
         Trip(
             id: UUID(), title: "Siargao surf week", destination: "Siargao",
@@ -157,6 +197,7 @@ enum MockData {
             plan: plan(),
             documents: documents()
         ),
+        siquijor(),
         Trip(
             id: UUID(), title: "Baguio weekend", destination: "Baguio",
             start: date(2026, 8, 22), end: date(2026, 8, 24), cover: .hills, coverPhoto: nil,

@@ -42,7 +42,7 @@ struct PlanView: View {
                     ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                if trip.plan.isEmpty {
+                if trip.plan.isEmpty && tab == .ideas {
                     empty
                 } else if tab == .ideas {
                     chips(trip)
@@ -328,7 +328,7 @@ struct LinkCard: View {
 }
 
 /// One planned item on the Days tab.
-private struct DayRow: View {
+struct DayRow: View {
     let item: PlanItem
     let trip: Trip
 
@@ -358,6 +358,7 @@ private struct DayRow: View {
     }
 
     private var subtitle: String {
+        if trip.isSolo { return item.placeName.isEmpty ? item.category.rawValue : item.placeName }
         guard item.audience == .interested else { return "Everyone" }
         return "Optional · \(item.going.count) in"
     }

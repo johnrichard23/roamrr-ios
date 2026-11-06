@@ -58,7 +58,7 @@ struct DocumentsView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .background(theme.background)
-        .navigationTitle("Documents")
+        .navigationTitle(trip.isSolo ? "Bookings" : "Documents")
         .navigationBarTitleDisplayMode(.inline)
         .solidNavigationBar()
         .safeAreaInset(edge: .bottom) {

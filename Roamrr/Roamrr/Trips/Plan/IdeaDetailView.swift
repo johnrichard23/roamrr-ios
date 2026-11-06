@@ -38,17 +38,20 @@ struct IdeaDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: theme.radius.card, style: .continuous))
                         .accessibilityHidden(true)
                 }
-                header(item)
+                header(item, solo: trip.isSolo)
                 if let link = item.link { LinkCard(link: link) }
                 if !item.note.isEmpty {
                     Text(item.note).textRole(.body).foregroundStyle(theme.labelPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(theme.spacing.md)
                         .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
-                if item.day != nil { schedule(item) }
-                ReactionRow(item: item, me: store.me) { store.react($0, on: item.id, in: tripID) }
+                if item.day != nil { schedule(item, solo: trip.isSolo) }
+                // Votes and who is in only mean something with other people on the trip.
+                if !trip.isSolo {
+                    ReactionRow(item: item, me: store.me) { store.react($0, on: item.id, in: tripID) }
+                }
                 actions(trip, item)
-                who(trip, item)
+                if !trip.isSolo { who(trip, item) }
                 if canChange {
                     Button { confirmDelete = true } label: {
                         Label("Delete idea", systemImage: "trash")
@@ -93,7 +96,7 @@ struct IdeaDetailView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("It's removed for everyone, along with its votes.")
+            Text(trip.isSolo ? "It's removed from your plan." : "It's removed for everyone, along with its votes.")
         }
     }
 
@@ -108,17 +111,24 @@ struct IdeaDetailView: View {
 
     // MARK: Pieces
 
-    private func header(_ item: PlanItem) -> some View {
+    private func header(_ item: PlanItem, solo: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Label(item.category.rawValue, systemImage: item.category.symbol)
                 .textRole(.subheadline, emphasized: true).foregroundStyle(theme.accent)
             Text(item.title).displayTitleStyle().foregroundStyle(theme.labelPrimary)
-            HStack(spacing: 8) {
-                MemberAvatar(item.addedBy, diameter: 22)
-                Text(byLine(item)).textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+            if solo {
+                if !item.placeName.isEmpty {
+                    Label(item.placeName, systemImage: "mappin").textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    MemberAvatar(item.addedBy, diameter: 22)
+                    Text(byLine(item)).textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+                }
             }
             if let cost = item.cost {
-                Text("About \(Money.peso(cost)) each").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
+                Text(solo ? "About \(Money.peso(cost))" : "About \(Money.peso(cost)) each")
+                    .textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,11 +142,13 @@ struct IdeaDetailView: View {
     }
 
     /// Where it sits in the plan, and for optional items, whether you are in.
-    private func schedule(_ item: PlanItem) -> some View {
+    private func schedule(_ item: PlanItem, solo: Bool) -> some View {
         VStack(alignment: .leading, spacing: theme.spacing.xs) {
             Label("\(item.day?.weekdayDayMonth ?? "")\(item.timeText.map { " · \($0)" } ?? "")", systemImage: "calendar")
                 .textRole(.body, emphasized: true).foregroundStyle(theme.labelPrimary)
-            if item.audience == .interested {
+            if solo {
+                EmptyView()
+            } else if item.audience == .interested {
                 let isIn = item.going.contains(store.me.id)
                 HStack {
                     Text("Optional · \(item.going.count) in").textRole(.subheadline).foregroundStyle(theme.labelSecondary)
@@ -158,7 +170,7 @@ struct IdeaDetailView: View {
 
     private func actions(_ trip: Trip, _ item: PlanItem) -> some View {
         HStack(spacing: theme.spacing.xs) {
-            if item.coordinate != nil, !trip.isPast(on: store.today) {
+            if item.coordinate != nil, !trip.isPast(on: store.today), !trip.isSolo {
                 Button(meetingSet ? "Meeting point set" : "Meet here", systemImage: meetingSet ? "checkmark" : "mappin.and.ellipse") {
                     guard let spot = item.coordinate else { return }
                     store.propose(

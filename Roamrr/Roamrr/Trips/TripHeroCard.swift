@@ -10,7 +10,7 @@ struct TripHeroCard: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        TripCoverCard(trip: trip, subtitle: "\(trip.dates) · \(trip.peopleCount) people") {
+        TripCoverCard(trip: trip, subtitle: "\(trip.dates) · \(trip.isSolo ? "Just me" : "\(trip.peopleCount) people")") {
             // The "N new" chip is not shown until there is an activity list for it to open.
             HStack { statusChip; Spacer() }
         } bottom: {

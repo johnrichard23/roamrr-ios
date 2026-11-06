@@ -86,7 +86,7 @@ struct AddIdeaSheet: View {
                             Text("\(note.count)/\(Self.noteLimit)").textRole(.footnote).foregroundStyle(theme.labelTertiary)
                         }
                     }
-                    field("Cost per person", note: "optional") {
+                    field(trip.isSolo ? "Cost" : "Cost per person", note: "optional") {
                         HStack(spacing: 4) {
                             Text("₱").foregroundStyle(theme.labelSecondary)
                             TextField("0", text: $costText).keyboardType(.decimalPad)

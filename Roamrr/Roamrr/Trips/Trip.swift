@@ -54,6 +54,12 @@ struct Trip: Identifiable, Hashable {
     var documents: [TripDocument] = []
     /// Whether this phone hears about the trip. Per person, not per trip.
     var notificationsOn = true
+    /// Just you. Set when the trip is created with "Just me".
+    var solo = false
+    /// What you mean to spend per day, stays not counted. Solo trips only for now.
+    var dailyBudget: Decimal?
+    /// Your own entries, one per day. Never shown to anyone else.
+    var journal: [JournalEntry] = []
 
     var peopleCount: Int { members.count + 1 }
 

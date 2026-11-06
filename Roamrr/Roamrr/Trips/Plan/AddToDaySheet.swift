@@ -59,13 +59,15 @@ struct AddToDaySheet: View {
                                 .datePickerStyle(.wheel).labelsHidden().frame(maxWidth: .infinity)
                         }
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Who is it for?").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
-                        Picker("Who is it for", selection: $audience) {
-                            Text("Everyone").tag(PlanAudience.everyone)
-                            Text("Only those who want to").tag(PlanAudience.interested)
+                    if !trip.isSolo {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Who is it for?").textRole(.subheadline, emphasized: true).foregroundStyle(theme.labelPrimary)
+                            Picker("Who is it for", selection: $audience) {
+                                Text("Everyone").tag(PlanAudience.everyone)
+                                Text("Only those who want to").tag(PlanAudience.interested)
+                            }
+                            .pickerStyle(.segmented)
                         }
-                        .pickerStyle(.segmented)
                     }
                 }
             }

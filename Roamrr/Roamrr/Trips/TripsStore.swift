@@ -39,6 +39,13 @@ final class TripsStore {
         profile = MemberAppearance(me.updating(name: name, colorIndex: colorIndex, photo: photo))
     }
 
+    /// Saves a day's journal entry, replacing that day's earlier one. An empty entry removes it.
+    func saveEntry(_ entry: JournalEntry, in tripID: Trip.ID) {
+        guard let index = trips.firstIndex(where: { $0.id == tripID }) else { return }
+        trips[index].journal.removeAll { Calendar.current.isDate($0.day, inSameDayAs: entry.day) }
+        if !entry.isEmpty { trips[index].journal.append(entry) }
+    }
+
     /// Trips that are happening or still to come, soonest first.
     var active: [Trip] {
         trips.filter { !$0.isPast(on: today) }.sorted { ($0.datesDecided ? $0.start : .distantFuture) < ($1.datesDecided ? $1.start : .distantFuture) }

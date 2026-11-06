@@ -2,9 +2,9 @@ import PhotosUI
 import RoamrrDesign
 import SwiftUI
 
-/// T2 and T2b: make a trip, then invite people, all in one sheet.
+/// T2c, T2 and T2b: who is coming, then the trip, then (with friends) inviting them, all in one sheet.
 struct CreateTripSheet: View {
-    /// Called with the new trip when the sheet closes after creating it, so the app can open its Planning home.
+    /// Called with the new trip when the sheet closes after creating it, so the app can open its home.
     var onOpen: (Trip.ID) -> Void = { _ in }
 
     @Environment(\.theme) private var theme
@@ -12,24 +12,83 @@ struct CreateTripSheet: View {
     @Environment(TripsStore.self) private var store
 
     @State private var model = CreateTripViewModel()
+    @State private var showForm = false
     @FocusState private var nameFocused: Bool
+    @FocusState private var budgetFocused: Bool
 
     var body: some View {
         NavigationStack {
-            if let trip = model.created {
-                TripCreatedView(trip: trip) {
-                    dismiss()
-                    onOpen(trip.id)
+            whoIsComing
+                .dsSheetToolbar("New trip", cancel: { dismiss() })
+                .navigationDestination(isPresented: $showForm) {
+                    // The invite step replaces the form in place, so back can't return to a trip already made.
+                    Group {
+                        if let trip = model.created, model.solo != true {
+                            TripCreatedView(trip: trip) {
+                                dismiss()
+                                onOpen(trip.id)
+                            }
+                            .navigationBarBackButtonHidden()
+                            .toolbar(.hidden, for: .navigationBar)
+                        } else {
+                            form.dsSheetToolbar(model.solo == true ? "Just me" : "With friends")
+                        }
+                    }
+                    .animation(DesignSystem.Motion.enter, value: model.created)
                 }
-                    .navigationTitle("Trip created")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar(.hidden, for: .navigationBar)
-            } else {
-                form
-                    .dsSheetToolbar("New trip", cancel: { dismiss() })
-            }
         }
-        .animation(DesignSystem.Motion.enter, value: model.created)
+    }
+
+    // MARK: Who is coming
+
+    private var whoIsComing: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacing.md) {
+                Text("Who's coming?").stepTitleStyle().foregroundStyle(theme.labelPrimary)
+                    .padding(.bottom, theme.spacing.xs)
+                choice(
+                    solo: true, symbol: "figure.walk", title: "Just me",
+                    detail: "Your plan, a daily budget and a private journal."
+                )
+                choice(
+                    solo: false, symbol: "person.3", title: "With friends",
+                    detail: "Ideas and votes, shared expenses, and where everyone is."
+                )
+                Label("A solo trip can become a group trip later. Nothing is lost.", systemImage: "info.circle")
+                    .textRole(.footnote).foregroundStyle(theme.labelSecondary)
+                    .padding(.top, theme.spacing.xs)
+            }
+            .padding(.horizontal, theme.spacing.lg)
+            .padding(.top, theme.spacing.md)
+        }
+        .background(theme.background)
+    }
+
+    private func choice(solo: Bool, symbol: String, title: String, detail: String) -> some View {
+        Button {
+            model.solo = solo
+            showForm = true
+        } label: {
+            HStack(spacing: theme.spacing.md) {
+                Image(systemName: symbol)
+                    .font(.title2).foregroundStyle(theme.accent)
+                    .frame(width: 52, height: 52)
+                    .background(Palette.accentSoft.color, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).textRole(.headline).foregroundStyle(theme.labelPrimary)
+                    Text(detail).textRole(.subheadline).foregroundStyle(theme.labelSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").foregroundStyle(theme.labelTertiary)
+            }
+            .padding(theme.spacing.md)
+            .background(Color.Roamrr.pill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(CardPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: Form
@@ -39,10 +98,18 @@ struct CreateTripSheet: View {
             VStack(alignment: .leading, spacing: theme.spacing.lg) {
                 coverField
                 DSTextField(
-                    "Trip name", placeholder: "Sagada weekend", text: $model.name, isFocused: $nameFocused,
-                    autocapitalization: .words
+                    "Trip name", placeholder: model.solo == true ? "Siquijor on my own" : "Sagada weekend",
+                    text: $model.name, isFocused: $nameFocused, autocapitalization: .words
                 )
                 datesField
+                if model.solo == true {
+                    DSTextField(
+                        "Daily budget", placeholder: "₱2,000", text: $model.dailyBudgetText,
+                        isFocused: $budgetFocused,
+                        helperMessage: "Optional. What you mean to spend a day; stays don't count toward it.",
+                        keyboardType: .numberPad
+                    )
+                }
                 currencyField
             }
             .padding(.horizontal, theme.spacing.lg)
@@ -51,13 +118,21 @@ struct CreateTripSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .background(theme.background)
         .safeAreaInset(edge: .bottom) {
-            Button("Create trip") { model.create(in: store) }
+            Button("Create trip", action: create)
                 .buttonStyle(.ds(.ink))
                 .disabled(!model.canCreate)
                 .padding(.horizontal, theme.spacing.lg)
                 .padding(.vertical, theme.spacing.sm)
                 .background(theme.background)
         }
+    }
+
+    /// A trip with friends goes on to the invite step. A solo trip has nobody to invite, so it opens straight away.
+    private func create() {
+        model.create(in: store)
+        guard model.solo == true, let trip = model.created else { return }
+        dismiss()
+        onOpen(trip.id)
     }
 
     private var coverField: some View {

@@ -16,10 +16,22 @@ final class CreateTripViewModel {
         didSet { Task { await loadPhoto() } }
     }
 
-    /// Set once the trip exists; the sheet then shows the invite step.
+    /// The first answer: "Just me" (true) or "With friends" (false). Nil until chosen.
+    var solo: Bool?
+    /// What a solo traveller means to spend per day, as typed. Optional.
+    var dailyBudgetText = ""
+
+    /// Set once the trip exists; the sheet then shows the invite step, or closes for a solo trip.
     private(set) var created: Trip?
 
     var canCreate: Bool { !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// The typed daily budget as a number, ignoring commas and the peso sign; nil when empty or zero.
+    var dailyBudget: Decimal? {
+        let digits = dailyBudgetText.filter(\.isNumber)
+        guard let value = Decimal(string: digits), value > 0 else { return nil }
+        return value
+    }
 
     @MainActor
     private func loadPhoto() async {
@@ -34,7 +46,7 @@ final class CreateTripViewModel {
     }
 
     func create(in store: TripsStore) {
-        guard canCreate else { return }
+        guard canCreate, created == nil else { return }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let first = start ?? store.today
         var trip = Trip(
@@ -42,8 +54,15 @@ final class CreateTripViewModel {
             start: first, end: end ?? first, cover: cover, coverPhoto: photo,
             members: [], balance: nil, newCount: 0, code: Self.makeCode()
         )
-        trip.stage = .planning
         trip.datesDecided = start != nil
+        if solo == true {
+            // Nobody to vote with or finalise for: ideas go straight onto the plan.
+            trip.solo = true
+            trip.stage = .final
+            trip.dailyBudget = dailyBudget
+        } else {
+            trip.stage = .planning
+        }
         store.add(trip)
         created = trip
     }

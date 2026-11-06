@@ -5,7 +5,7 @@ import SwiftUI
 
 /// The pages a trip home can open.
 enum TripSection: Hashable {
-    case balances, expenses, plan, itinerary, map, people, documents, myDocuments
+    case balances, expenses, plan, itinerary, map, people, documents, myDocuments, journal
 
     var title: String {
         switch self {
@@ -17,6 +17,7 @@ enum TripSection: Hashable {
         case .people: "People"
         case .documents: "Documents"
         case .myDocuments: "My documents"
+        case .journal: "Journal"
         }
     }
 }
@@ -337,7 +338,7 @@ struct TripOverviewView: View {
 }
 
 /// The navy card on a trip's home. In dark mode it gets a hairline edge: the panel colour is almost the tile colour there.
-private struct PanelCard: ViewModifier {
+struct PanelCard: ViewModifier {
     @Environment(\.colorScheme) private var scheme
 
     func body(content: Content) -> some View {

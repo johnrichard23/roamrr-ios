@@ -48,11 +48,23 @@ struct TripHomeView: View {
     @Environment(TripsStore.self) private var store
     @Namespace private var mapZoom
 
+    /// A solo trip has nobody to vote, so its plan is one list; a group trip keeps Ideas and Days.
+    @ViewBuilder
+    private func planScreen(_ section: TripSection) -> some View {
+        if store.trip(id: tripID)?.isSolo == true {
+            SoloPlanView(tripID: tripID)
+        } else {
+            PlanView(tripID: tripID, startOnDays: section == .itinerary)
+        }
+    }
+
     var body: some View {
         Group {
             if let trip = store.trip(id: tripID) {
                 if trip.isPlanning {
                     PlanningHomeView(tripID: tripID)
+                } else if trip.isSolo {
+                    SoloTripHomeView(tripID: tripID)
                 } else {
                     TripOverviewView(tripID: tripID)
                 }
@@ -65,12 +77,12 @@ struct TripHomeView: View {
             switch section {
             case .balances: BalancesView(tripID: tripID)
             case .expenses: ExpensesView(tripID: tripID)
-            case .plan: PlanView(tripID: tripID)
-            case .itinerary: PlanView(tripID: tripID, startOnDays: true)
+            case .plan, .itinerary: planScreen(section)
             case .people: PeopleView(tripID: tripID)
             case .map: TripMapView(tripID: tripID).mapZoomDestination(in: mapZoom)
             case .documents: DocumentsView(tripID: tripID)
             case .myDocuments: MyDocumentsView()
+            case .journal: JournalView(tripID: tripID)
             }
         }
         .navigationDestination(for: DocumentRoute.self) { DocumentDetailView(tripID: $0.tripID, documentID: $0.documentID) }
